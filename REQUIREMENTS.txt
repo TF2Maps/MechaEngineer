@@ -1,0 +1,13 @@
+discord
+orm
+databases
+sqlalchemy
+aiosqlite
+aiomysql
+httpx
+beautifulsoup4
+python-valve
+asyncssh
+dotted_dict
+pytimeparse
+tabulate
