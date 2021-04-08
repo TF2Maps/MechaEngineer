@@ -1,2 +1,2 @@
-from models.Maps import Maps
-from models.Tag import Tag
+from .Tag import Tag
+from .Maps import Maps

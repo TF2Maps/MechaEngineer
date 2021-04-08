@@ -4,7 +4,8 @@ pass
 # 3rd Party Imports
 import discord
 from discord.ext import commands
-import orm
+from tabulate import tabulate
+from tortoise.query_utils import Q
 
 # Local Imports
 from models.Tag import Tag
@@ -16,17 +17,16 @@ config = global_config.cogs.tags
 
 
 class Tags(commands.Cog):
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
         key = message.content.lower()
-        try:
-            tag = await Tag.objects.get(key=key)
+        tag = await Tag.filter(key=key).first()
+        if tag:
             await message.channel.send(tag.value)
-        except orm.exceptions.NoMatch:
-            return
 
     @commands.group()
     async def tag(self, ctx):
@@ -35,33 +35,38 @@ class Tags(commands.Cog):
     @tag.command(aliases=config.create.aliases, help=config.create.help)
     @commands.has_any_role(*config.create.role_names)
     async def create(self, ctx, key, *, value):
-        try:
-            tag = await Tag.objects.get(key=key.lower())
-            await ctx.send(f"{error} Tag already exists")
-        except orm.exceptions.NoMatch:
-            await Tag.objects.create(key=key.lower(), value=value, author=ctx.author.name)
+        tag, created = await Tag.get_or_create(
+            key=key.lower(),
+            value=value,
+            author=ctx.author.name
+        )
+
+        if created:
             await ctx.send(f"{success} Created tag `{key}`!")
+        else:
+            await ctx.send(f"{error} Tag already exists")
 
     @tag.command(aliases=config.remove.aliases, help=config.remove.help)
     @commands.has_any_role(*config.remove.role_names)
     async def remove(self, ctx, key):
-        try:
-            tag = await Tag.objects.get(key=key)
+        tag = await Tag.get_or_none(key=key)
+
+        if tag:
             await tag.delete()
             await ctx.send(f"{success} Deleted tag `{key}`!")
-        except orm.exceptions.NoMatch:
+        else:
             await ctx.send(f"{error} Tag `{key}` not found.")
 
     @tag.command(aliases=config.list.aliases, help=config.list.help)
     @commands.has_any_role(*config.list.role_names)
     async def list(self, ctx, *, search):
-        tags = await Tag.objects.filter(key__icontains=search).all()
+        tags = await Tag.filter(
+            Q(key__icontains=search) | Q(author__icontains=search)
+        ).all()
 
-        from tabulate import tabulate
         rows = []
         for tag in tags:
             rows.append([tag.key, tag.value, tag.author])
 
         table = tabulate(rows, headers=["Key", "Value", "Author"], tablefmt="simple")
-
         await ctx.send(f"```diff\n{table}\n```")

@@ -27,7 +27,6 @@ class MapList(commands.Cog):
     @commands.command(aliases=config.add.aliases, help=config.add.help)
     @commands.has_any_role(*config.add.role_names)
     async def add(self, ctx, link, *, notes=""):
-        await connect_db(Maps.__database__)
         message = await ctx.reply(f"{loading} Uploading map to servers...")
 
         # Find map download in link
@@ -46,7 +45,7 @@ class MapList(commands.Cog):
             map_name = re.sub("\.bsp$", "", filename)
 
         # Check for dupe
-        already_in_queue = await Maps.objects.filter(map=map_name, status="pending").all()
+        already_in_queue = await Maps.filter(map=map_name, status="pending").all()
         if len(already_in_queue) > 0:
             await message.edit(content=f"{error} `{map_name}` is already on the list!")
             return
@@ -68,7 +67,7 @@ class MapList(commands.Cog):
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
 
-        await Maps.objects.create(
+        await Maps.create(
             discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
             discord_user_id=ctx.author.id,
             map=map_name,
@@ -83,8 +82,7 @@ class MapList(commands.Cog):
     @commands.command(aliases=config.delete.aliases, help=config.delete.help)
     @commands.has_any_role(*config.delete.role_names)
     async def delete(self, ctx, map_name):
-        await connect_db(Maps.__database__)
-        maps = await Maps.objects.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
+        maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
             await ctx.send(f"{error} You don't have a map with that name on the list!")
@@ -95,14 +93,12 @@ class MapList(commands.Cog):
     @commands.command(aliases=config.maps.aliases, help=config.maps.help)
     @commands.has_any_role(*config.maps.role_names)
     async def maps(self, ctx):
-        await connect_db(Maps.__database__)
-
         # Show maps uploaded by message author
-        mymaps = await Maps.objects.filter(status="pending", discord_user_id=ctx.author.id).all()
+        mymaps = await Maps.filter(status="pending", discord_user_id=ctx.author.id).all()
         mymaps_output = [f"• {item.map}" for item in mymaps]
         mymaps_output = "\n".join(mymaps_output)
 
-        allmaps = await Maps.objects.filter(status="pending").all()
+        allmaps = await Maps.filter(status="pending").all()
         allmaps_output = [f"• {item.map}" for item in allmaps]
         allmaps_output = allmaps_output[:5]
         allmaps_output = "\n".join(allmaps_output)
