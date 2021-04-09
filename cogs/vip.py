@@ -7,7 +7,7 @@ from discord.ext import commands
 import databases
 
 # Local Imports
-from utils import load_config
+from utils import load_config, cog_error_handler
 from emojis import success, warning, error, info, loading
 
 
@@ -16,6 +16,8 @@ config = global_config.cogs.vip
 
 
 class VIP(commands.Cog):
+    cog_command_error = cog_error_handler
+
     @commands.command(aliases=config.upgrade.aliases, help=config.upgrade.help)
     @commands.has_any_role(*config.upgrade.role_names)
     async def upgrade(self, ctx):

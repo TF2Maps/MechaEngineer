@@ -2,6 +2,7 @@
 import sys
 import asyncio
 import signal
+from datetime import datetime
 
 # 3rd Party Imports
 from discord.ext import commands
@@ -11,7 +12,7 @@ from tortoise import Tortoise
 # Local Imports
 from cogs import *
 from emojis import success, warning, error, info
-from utils import load_config
+from utils import load_config, EmbedHelpCommand
 
 config = load_config()
 
@@ -27,6 +28,7 @@ def main():
     bot.add_cog(MapList(bot))
     bot.add_cog(Servers(bot))
     bot.add_cog(VIP(bot))
+    bot.add_cog(Misc(bot))
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())
@@ -74,20 +76,11 @@ async def init_db():
             }
         }
     )
-    await Tortoise.generate_schemas()
+    # await Tortoise.generate_schemas()
 
 
 async def close():
     await Tortoise.close_connections()
-
-
-class EmbedHelpCommand(commands.MinimalHelpCommand):
-    async def send_pages(self):
-        destination = self.get_destination()
-        e = discord.Embed(description='')
-        for page in self.paginator.pages:
-            e.description += page
-        await destination.send(embed=e)
 
 
 if __name__ == "__main__":

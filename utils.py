@@ -14,6 +14,20 @@ def load_config():
     return DottedDict(config)
 
 
+class EmbedHelpCommand(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        embed = discord.Embed(description='')
+        embed.set_author(name=f"Help", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
+        embed.set_footer(text="TF2M Bot • v2.0 ᴮᴱᵀᴬ")
+
+        for page in self.paginator.pages:
+            embed.description += page
+        embed.description = embed.description.replace("\n__**\u200bNo Category**__\nhelp", "")
+        embed.description = embed.description.replace("\n__", "\n\n__")
+
+        await destination.send(embed=embed)
+
 async def cog_error_handler(self, ctx, error_message):
     if isinstance(error_message, commands.BadArgument):
         await ctx.send(f"{error} {error_message}")

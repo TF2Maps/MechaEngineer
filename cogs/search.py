@@ -1,57 +1,111 @@
 # Std Lib Imports
-pass
+import re
 
 # 3rd Party Imports
 import discord
 from discord.ext import commands
 from bs4 import BeautifulSoup
 import httpx
+import databases
 
 # Local Imports
-from utils import load_config
+from utils import load_config, cog_error_handler
 
 global_config = load_config()
 config = global_config.cogs.search
 
 
 class Search(commands.Cog):
-    @commands.group(invoke_without_command=True, aliases=config.vdc.aliases, help=config.vdc.help)
+    cog_command_error = cog_error_handler
+
+    @commands.command(aliases=config.vdc.aliases, help=config.vdc.help)
     @commands.has_any_role(*config.vdc.role_names)
     async def vdc(self, ctx, *, term):
-        embed = await self.search_site("developer.valvesoftware.com/wiki", term, "Valve Developer Wiki", "https://cdn.discordapp.com/attachments/557661188033478656/829218372398481438/vdc_64.png")
+        await ctx.trigger_typing()
+        links = await self.search_with_bing("developer.valvesoftware.com/wiki", term)
+        embed = self.get_search_embed(links, term, "Valve Developer Wiki", config.vdc_icon)
         await ctx.send(embed=embed)
 
-    @commands.group(invoke_without_command=True, aliases=config.tf2m.aliases, help=config.tf2m.help)
+    @commands.command(aliases=config.tf2m.aliases, help=config.tf2m.help)
     @commands.has_any_role(*config.tf2m.role_names)
     async def tf2m(self, ctx, *, term):
-        embed = await self.search_site("tf2maps.net", term, "TF2 Maps", "https://cdn.discordapp.com/attachments/557661188033478656/829216388757323776/tf2m_64.png")
+        await ctx.trigger_typing()
+        links = await self.search_with_bing(
+            "tf2maps.net",
+            term,
+            exclude=[
+                "feedback.tf2maps.net",
+                "demos.tf2maps.net",
+                "bot.tf2maps.net",
+                # "tf2maps.net/downloads",
+                # "tf2maps.net/threads"
+            ]
+        )
+        embed = self.get_search_embed(links, term, "TF2 Maps", config.tf2m_icon)
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=config.dl.aliases, help=config.dl.help)
+    @commands.has_any_role(*config.dl.role_names)
+    async def dl(self, ctx, resource_name):
+        links = await self.search_downloads(resource_name)
+        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", config.tf2m_icon)
         await ctx.send(embed=embed)
 
     @staticmethod
-    async def search_site(site, term, title, icon):
-        plus_term = "+".join(term.split(" "))
+    async def search_downloads(resource_name, discord_user_id=None):
+        database = databases.Database(global_config.databases.tf2maps_site)
+        await database.connect()
+
+        results = []
+        if discord_user_id:
+            query = "SELECT user_id FROM xf_user_field_value WHERE field_id = :field_id AND field_value = :field_value"
+            values = {"field_id": "discord_user_id", "field_value": discord_user_id}
+            result = await database.fetch_one(query=query, values=values)
+            forum_user_id = result[0]
+            query = 'SELECT title,resource_id from xf_resource where user_id=:field_user_id AND title LIKE :field_title'
+            values = {"field_user_id": forum_user_id, "field_title": f"%{resource_name}%"}
+            results = await database.fetch_all(query=query, values=values)
+
+        else:
+            query = 'SELECT title,resource_id from xf_resource where title LIKE :field_title ORDER BY resource_id DESC'
+            values = {"field_title": f"%{resource_name}%"}
+            results = await database.fetch_all(query=query, values=values)
+
+        links = []
+        for name, map_id in results:
+            name = re.sub("[^A-z0-9_]", "-", name)
+            name = re.sub("-+$", "", name)
+            name = re.sub("-{2,}", "-", name)
+            name = name.lower()
+
+            links.append(f"https://tf2maps.net/downloads/{name}.{map_id}/")
+
+        return links
+
+    @staticmethod
+    async def search_with_bing(site, term, exclude=[]):
+        plus_term = "%20".join(term.split(" "))
+        exclude_sites = "%20".join([f"-site%3A{site}" for site in exclude])
+        search_query = f"https://www.bing.com/search?q=site%3A{site}%20{exclude_sites}%20{plus_term}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(f'https://www.bing.com/search?q=site%3A{site}+{plus_term}')
+            response = await client.get(search_query)
 
         soup = BeautifulSoup(response.text, 'html.parser')
         links = soup.select("ol#b_results > li.b_algo > h2 > a")
 
-        output = f"Showing top **{len(links)}** results for `{term}`\n"
+        return [link['href'] for link in links]
+
+    @staticmethod
+    def get_search_embed(links, term, title, icon):
+        output = f"Showing **{len(links)}** results for `{term}`\n"
         for link in links:
-            # Sometimes it scrapes blank data?
-            if not link.text:
-                continue
-
-            text = link.text.replace("| TF2Maps.net", "")
-            text = link.text.replace("- Valve Developer Community", "")
-
-            output += f"\n• [{text}]({link.get('href')})"
+            output += f"\n• {link}"
 
         embed = discord.Embed(
             description=output,
         )
-        embed.set_author(name=f"{title} Search", url=f"https://www.bing.com/search?q=site%3A{site}+{plus_term}", icon_url=icon)
-        embed.set_footer(text="Powered by Bing")
+        embed.set_author(name=f"{title} Search", icon_url=icon)
+        embed.set_footer(text="TF2M Bot • v2.0 ʙᴇᴛᴀ")
 
         return embed
