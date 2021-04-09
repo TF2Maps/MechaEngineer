@@ -22,16 +22,18 @@ class Search(commands.Cog):
     @commands.has_any_role(*config.vdc.role_names)
     async def vdc(self, ctx, *, term):
         await ctx.trigger_typing()
-        links = await self.search_with_bing("developer.valvesoftware.com/wiki", term)
-        embed = self.get_search_embed(links, term, "Valve Developer Wiki", config.vdc_icon)
+        site = "developer.valvesoftware.com/wiki"
+        links = await self.search_with_bing(site, term)
+        embed = self.get_search_embed(links, term, "Valve Developer Wiki", config.vdc_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
     @commands.command(aliases=config.tf2m.aliases, help=config.tf2m.help)
     @commands.has_any_role(*config.tf2m.role_names)
     async def tf2m(self, ctx, *, term):
         await ctx.trigger_typing()
+        site = "tf2maps.net"
         links = await self.search_with_bing(
-            "tf2maps.net",
+            site,
             term,
             exclude=[
                 "feedback.tf2maps.net",
@@ -41,14 +43,15 @@ class Search(commands.Cog):
                 # "tf2maps.net/threads"
             ]
         )
-        embed = self.get_search_embed(links, term, "TF2 Maps", config.tf2m_icon)
+        embed = self.get_search_embed(links, term, "TF2 Maps", config.tf2m_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
     @commands.command(aliases=config.dl.aliases, help=config.dl.help)
     @commands.has_any_role(*config.dl.role_names)
     async def dl(self, ctx, resource_name):
+        site = "tf2maps.net"
         links = await self.search_downloads(resource_name)
-        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", config.tf2m_icon)
+        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", config.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
         await ctx.send(embed=embed)
 
     @staticmethod
@@ -97,10 +100,11 @@ class Search(commands.Cog):
         return [link['href'] for link in links]
 
     @staticmethod
-    def get_search_embed(links, term, title, icon):
+    def get_search_embed(links, term, title, icon, remove_prefix=""):
         output = f"Showing **{len(links)}** results for `{term}`\n"
         for link in links:
-            output += f"\n• {link}"
+            link_name = link.replace(remove_prefix, "")
+            output += f"\n• [{link_name}]({link})"
 
         embed = discord.Embed(
             description=output,
