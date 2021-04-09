@@ -19,3 +19,8 @@ class Misc(commands.Cog):
     @commands.has_any_role(*config.code.role_names)
     async def code(self, ctx):
         await ctx.send(f"{github} You can find code my at https://github.com/TF2Maps/TF2M-bot-2021")
+
+    @commands.command(aliases=config.ping.aliases, help=config.ping.help)
+    @commands.has_any_role(*config.ping.role_names)
+    async def ping(self, ctx):
+        await ctx.send(f"Pong")
