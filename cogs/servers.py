@@ -28,6 +28,23 @@ class Servers(commands.Cog):
         embed = await self.server_lookup("eu.tf2maps.net")
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=config.active.aliases, help=config.active.help)
+    @commands.has_any_role(*config.active.role_names)
+    async def active(self, ctx):
+        with valve.source.a2s.ServerQuerier(("us.tf2maps.net", 27015)) as server:
+            us_info = server.info()
+
+            if us_info['player_count'] > config.active.player_threshold:
+                embed = await self.server_lookup("us.tf2maps.net")
+                await ctx.send(embed=embed)
+
+        with valve.source.a2s.ServerQuerier(("eu.tf2maps.net", 27015)) as server:
+            eu_info = server.info()
+
+            if eu_info['player_count'] > config.active.player_threshold:
+                embed = await self.server_lookup("eu.tf2maps.net")
+                await ctx.send(embed=embed)
+
     @staticmethod
     async def server_lookup(host):
         with valve.source.a2s.ServerQuerier((host, 27015)) as server:
