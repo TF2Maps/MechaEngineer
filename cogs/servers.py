@@ -36,11 +36,11 @@ class Servers(commands.Cog):
         player_count = f"{info['player_count']}/{info['max_players']}"
 
         embed = discord.Embed(
-            title=info['server_name'],
-            url="",
-            description=f"Join now steam://connect/{host}:27015"
+            description=f"**steam://connect/{host}:27015**"
         )
+        embed.set_author(name=info['server_name'], icon_url=global_config.cogs.search.tf2m_icon)
         embed.add_field(name="Current Map", value=info['map'], inline=True)
         embed.add_field(name="Player Count", value=player_count, inline=True)
+        embed.set_footer(text="TF2M Bot • v2.0 ʙᴇᴛᴀ")
 
         return embed
