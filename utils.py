@@ -1,4 +1,9 @@
 import traceback
+from copy import copy
+from logging import Formatter
+import logging
+import os
+import sys
 
 import discord
 from discord.ext import commands
@@ -40,3 +45,40 @@ async def cog_error_handler(self, ctx, error_message):
     else:
         tb = traceback.format_exception(None, error_message.original, error_message.original.__traceback__)
         await ctx.send(f"{error} Unknown error: `{error_message.__class__.__name__}`\n\n<@65497519504764928> ||```\n{''.join(tb)}```||")
+
+def setup_logger(level):
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_formatter = ColoredFormatter(
+        "%(levelname)s \u001b[1;30m%(name)s.%(funcName)s:%(lineno)s \u001b[0m'%(message)s'"
+    )
+    console_handler.setFormatter(console_formatter)
+    console_handler.setLevel(level)
+
+    log = logging.getLogger('')
+    log.setLevel(level)
+    log.addHandler(console_handler)
+
+class ColoredFormatter(Formatter):
+    def __init__(self, patern):
+        Formatter.__init__(self, patern)
+
+    def format(self, record):
+        MAPPING = {
+            'DEBUG': 36,
+            'INFO': 32,
+            'WARNING': 33,
+            'ERROR': 31,
+            'CRITICAL': 41,
+        }
+
+        PREFIX = '\033[1;'
+        SUFFIX = '\033[0m'
+
+        colored_record = copy(record)
+        levelname = colored_record.levelname
+        seq = MAPPING.get(levelname, 37)
+
+        colored_levelname = (f'{PREFIX}{seq}m{levelname}{SUFFIX}')
+        colored_record.levelname = colored_levelname
+
+        return Formatter.format(self, colored_record)

@@ -12,10 +12,10 @@ from tortoise import Tortoise
 # Local Imports
 from cogs import *
 from emojis import success, warning, error, info
-from utils import load_config, EmbedHelpCommand
+from utils import load_config, EmbedHelpCommand, setup_logger
 
 config = load_config()
-
+setup_logger(config.log_level)
 
 def main():
     bot = commands.Bot(command_prefix=config.bot_prefix)
