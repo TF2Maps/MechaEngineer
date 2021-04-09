@@ -104,12 +104,16 @@ class Search(commands.Cog):
         output = f"Showing **{len(links)}** results for `{term}`\n"
         for link in links:
             link_name = link.replace(remove_prefix, "")
+            link_name = re.sub("/$", "", link_name)
+
+            if not link_name:
+                continue
             output += f"\n• [{link_name}]({link})"
 
         embed = discord.Embed(
             description=output,
         )
         embed.set_author(name=f"{title} Search", icon_url=icon)
-        embed.set_footer(text="TF2M Bot • v2.0 ʙᴇᴛᴀ")
+        embed.set_footer(text=global_config.bot_footer)
 
         return embed

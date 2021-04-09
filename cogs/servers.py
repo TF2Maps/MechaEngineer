@@ -41,6 +41,6 @@ class Servers(commands.Cog):
         embed.set_author(name=info['server_name'], icon_url=global_config.cogs.search.tf2m_icon)
         embed.add_field(name="Current Map", value=info['map'], inline=True)
         embed.add_field(name="Player Count", value=player_count, inline=True)
-        embed.set_footer(text="TF2M Bot • v2.0 ʙᴇᴛᴀ")
+        embed.set_footer(text=global_config.bot_footer)
 
         return embed

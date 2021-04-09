@@ -118,7 +118,7 @@ class MapList(commands.Cog):
         if len(my_maps) > 0:
             embed.add_field(name="Your Maps", value=my_maps, inline=False)
         embed.add_field(name="Map Queue", value=all_maps, inline=False)
-        embed.set_footer(text="TF2M Bot • v2.0 [Beta]")
+        embed.set_footer(text=global_config.bot_footer)
 
         await ctx.send(embed=embed)
 
