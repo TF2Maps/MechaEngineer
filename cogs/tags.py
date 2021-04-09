@@ -72,3 +72,9 @@ class Tags(commands.Cog):
 
         table = tabulate(rows, headers=["Key", "Value", "Author"], tablefmt="simple")
         await ctx.send(f"```diff\n{table}\n```")
+
+    @tag.command(aliases=config.count.aliases, help=config.count.help)
+    @commands.has_any_role(*config.count.role_names)
+    async def count(self, ctx):
+        count = await Tag.all().count()
+        await ctx.send(f"{info} There are `{count}` tags.")
