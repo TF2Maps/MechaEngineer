@@ -15,6 +15,13 @@ config = global_config.cogs.misc
 class Misc(commands.Cog):
     cog_command_error = cog_error_handler
 
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self.bot.change_presence(activity=discord.Game(name="Team Fortress 2"))
+
     @commands.command(aliases=config.code.aliases, help=config.code.help)
     @commands.has_any_role(*config.code.role_names)
     async def code(self, ctx):
