@@ -3,3 +3,4 @@ from cogs.search import Search
 from cogs.maplist import MapList
 from cogs.vip import VIP
 from cogs.servers import Servers
+from cogs.misc import Misc
