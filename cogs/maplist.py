@@ -4,7 +4,9 @@ import re
 import tempfile
 import os.path
 from urllib.parse import urlparse, quote
-from datetime import datetime
+from datetime import datetime, timedelta
+import shutil
+import bz2
 
 # 3rd Party Imports
 import asyncssh
@@ -12,9 +14,10 @@ from bs4 import BeautifulSoup
 from discord.ext import commands
 import discord
 import httpx
+from tortoise.query_utils import Q
 
 # Local Imports
-from utils import load_config, cog_error_handler
+from utils import load_config, cog_error_handler, get_srcds_server_info
 from emojis import success, warning, error, info, loading
 from models import Maps
 
@@ -69,7 +72,17 @@ class MapList(commands.Cog):
         await asyncio.gather(
             self.upload_map(filepath, **global_config.sftp.us_tf2maps_net),
             self.upload_map(filepath, **global_config.sftp.eu_tf2maps_net),
-            # self.upload_map(filepath, **global_config.sftp.redirect_tf2maps_net),
+        )
+
+        # Compress and put on redirect
+        await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
+        compressed_file = self.compress_file(filepath)
+        shutil.copyfile(
+            compressed_file,
+            os.path.join(
+                global_config.sftp.redirect_tf2maps_net.path,
+                os.path.basename(compressed_file)
+            )
         )
 
         # Insert map into DB
@@ -118,27 +131,42 @@ class MapList(commands.Cog):
     @commands.command(aliases=config.maps.aliases, help=config.maps.help)
     @commands.has_any_role(*config.maps.role_names)
     async def maps(self, ctx):
+        us_server = get_srcds_server_info("us.tf2maps.net")
+        eu_server = get_srcds_server_info("eu.tf2maps.net")
+        hour_ago = datetime.now() - timedelta(hours=1)
+
+        live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
         maps = await Maps.filter(status="pending").all()
 
-        all_maps = ""
-        my_maps = ""
+        map_names = ""
         for item in maps:
-            if item.discord_user_id == ctx.author.id:
-                my_maps += f"• {item.map}\n"
+            if item.map in [i.map for i in live_maps]:
+                continue
             else:
-                all_maps += f"• {item.map}\n"
+                map_names += f"• {item.map}\n"
 
-        embed = discord.Embed(
-            description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist.php\n\u200b"
-        )
+        embed = discord.Embed(description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist.php\n\u200b")
         embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist.php", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
 
-        if len(my_maps) > 0:
-            embed.add_field(name="Your Maps", value=my_maps, inline=False)
-        embed.add_field(name="Map Queue", value=all_maps, inline=False)
+        if live_maps:
+            live_map_names = "\n".join([i.map for i in live_maps])
+            embed.add_field(name="Now Playing", value=live_map_names, inline=False)
+
+        embed.add_field(name="Map Queue", value=map_names, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
-        await ctx.reply(embed=embed)
+        await ctx.send(embed=embed)
+
+    @staticmethod
+    def compress_file(filepath):
+        output_filepath = f"{filepath}.bz2"
+
+        with open(filepath, 'rb') as input:
+            with bz2.BZ2File(output_filepath, 'wb') as output:
+                shutil.copyfileobj(input, output)
+
+        return output_filepath
+
 
     @staticmethod
     async def upload_map(localfile, hostname, username, password, port, path):
