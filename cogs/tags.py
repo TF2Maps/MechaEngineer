@@ -31,6 +31,7 @@ class Tags(commands.Cog):
             await message.channel.send(tag.value)
 
     @commands.group()
+    @commands.has_any_role(*config.create.role_names)
     async def tag(self, ctx):
         pass
 
