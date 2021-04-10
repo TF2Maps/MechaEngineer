@@ -86,6 +86,24 @@ class MapList(commands.Cog):
 
         await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
 
+    @commands.command(aliases=config.update.aliases, help=config.update.help)
+    @commands.has_any_role(*config.update.role_names)
+    async def update(self, ctx, map_name, link, *, notes=""):
+        maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
+
+        if len(maps) == 0:
+            await ctx.send(f"{error} You don't have a map with that name on the list!")
+        else:
+            if link == "-":
+                if not notes:
+                    await ctx.reply(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                maps[0].notes = notes
+                await maps[0].save()
+                await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
+            else:
+                await maps[0].delete()
+                await self.add(ctx, link, notes=notes)
+
     @commands.command(aliases=config.delete.aliases, help=config.delete.help)
     @commands.has_any_role(*config.delete.role_names)
     async def delete(self, ctx, map_name):
@@ -120,7 +138,7 @@ class MapList(commands.Cog):
         embed.add_field(name="Map Queue", value=all_maps, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed)
 
     @staticmethod
     async def upload_map(localfile, hostname, username, password, port, path):
