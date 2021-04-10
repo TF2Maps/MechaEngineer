@@ -9,6 +9,7 @@ import discord
 from discord.ext import commands
 import yaml
 from dotted_dict import DottedDict
+import valve.source.a2s
 
 from emojis import error
 
@@ -18,6 +19,13 @@ def load_config():
     return DottedDict(config)
 
 global_config = load_config()
+
+
+def get_srcds_server_info(host, port=27015):
+    with valve.source.a2s.ServerQuerier((host, port)) as server:
+        server_info = server.info()
+        return DottedDict(dict(server_info))
+
 
 class EmbedHelpCommand(commands.MinimalHelpCommand):
     async def send_pages(self):
