@@ -41,6 +41,9 @@ class MapList(commands.Cog):
                 await ctx.send_help(ctx.command)
                 return
             else:
+                if len(link) > 1:
+                    await message.edit(content=f"{error} Found multiple links. Try a more specific link.")
+                    return
                 link = link[0]
 
         # Find map download in link
@@ -166,7 +169,6 @@ class MapList(commands.Cog):
                 shutil.copyfileobj(input, output)
 
         return output_filepath
-
 
     @staticmethod
     async def upload_map(localfile, hostname, username, password, port, path):
