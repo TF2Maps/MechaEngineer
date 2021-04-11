@@ -43,7 +43,7 @@ class Servers(commands.Cog):
 
         eu_server = get_srcds_server_info("eu.tf2maps.net")
         if eu_server.player_count > config.active.player_threshold:
-            embed = await self.get_server_embed(eu_server, "us.tf2maps.net")
+            embed = await self.get_server_embed(eu_server, "eu.tf2maps.net")
             await ctx.send(embed=embed)
             alive = True
 

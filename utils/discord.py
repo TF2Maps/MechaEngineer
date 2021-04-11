@@ -6,8 +6,10 @@ import discord
 from discord.ext import commands
 
 # Local Imports
+from .config import load_config
 from .emojis import error
 
+global_config = load_config()
 
 class EmbedHelpCommand(commands.MinimalHelpCommand):
     async def send_pages(self):
