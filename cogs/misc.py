@@ -20,7 +20,7 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await self.bot.change_presence(activity=discord.Game(name="Team Fortress 2"))
+        await self.bot.change_presence(activity=discord.Game(name="Team Fortress 2 | .help"))
 
     @commands.command(help=config.code.help)
     @commands.has_any_role(*config.code.role_names)

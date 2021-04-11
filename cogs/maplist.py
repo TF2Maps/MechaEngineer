@@ -63,7 +63,7 @@ class MapList(commands.Cog):
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
         if len(already_in_queue) > 0:
-            await message.edit(content=f"{error} `{map_name}` is already on the list!")
+            await message.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
         # Download the map
