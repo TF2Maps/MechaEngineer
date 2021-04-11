@@ -7,7 +7,7 @@ from discord.ext import commands
 
 # Local Imports
 from utils import load_config, cog_error_handler
-from emojis import success, warning, error, info, github
+from utils.emojis import success, warning, error, info, github
 
 global_config = load_config()
 config = global_config.cogs.misc

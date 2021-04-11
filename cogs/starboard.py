@@ -11,8 +11,8 @@ from tortoise import Tortoise
 # Local Imports
 from models import Starboard as sb
 
-from utils import load_config, cog_error_handler, get_srcds_server_info
-from emojis import success, warning, error, info, loading
+from utils import load_config, cog_error_handler
+from utils.emojis import success, warning, error, info, loading
 
 global_config = load_config()
 config = global_config.cogs.starboard

@@ -18,7 +18,10 @@ from tortoise.query_utils import Q
 
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
-from emojis import success, warning, error, info, loading
+from utils.emojis import success, warning, error, info, loading
+from utils.files import compress_file, download_file, get_download_filename, upload_file
+from utils.search import search_downloads
+
 from models import Maps
 
 global_config = load_config()
@@ -31,76 +34,8 @@ class MapList(commands.Cog):
     @commands.command(aliases=config.add.aliases, help=config.add.help)
     @commands.has_any_role(*config.add.role_names)
     async def add(self, ctx, link, *, notes=""):
-        message = await ctx.reply(f"{loading} Working on it...")
-
-        if not re.match("https?://", link):
-            search = ctx.bot.get_cog("Search")
-            link = await search.search_downloads(link, discord_user_id=ctx.author.id)
-            if not link:
-                await message.edit(content=f"{error} You have to use a hyperlink.")
-                await ctx.send_help(ctx.command)
-                return
-            else:
-                if len(link) > 1:
-                    await message.edit(content=f"{error} Found multiple links. Try a more specific link.")
-                    return
-                link = link[0]
-
-        # Find map download in link
-        link = await self.parse_link(link)
-        if not link:
-            await message.edit(content=f"{error} No valid link found.")
-            await ctx.send_help(ctx.command)
-            return
-
-        await message.edit(content=f"{loading} Found link: {link}")
-
-        # Get map info
-        filename = await self.get_download_filename(link)
-        filepath = os.path.join(tempfile.mkdtemp(), filename)
-        map_name = re.sub("\.bsp$", "", filename)
-
-        # Check for dupe
-        already_in_queue = await Maps.filter(map=map_name, status="pending").all()
-        if len(already_in_queue) > 0:
-            await message.edit(content=f"{warning} `{map_name}` is already on the list!")
-            return
-
-        # Download the map
-        await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
-        await self.download_file(link, filepath)
-
-        # Upload to servers
-        await message.edit(content=f"{loading} Uploading `{filename}` to game servers...")
-        await asyncio.gather(
-            self.upload_map(filepath, **global_config.sftp.us_tf2maps_net),
-            self.upload_map(filepath, **global_config.sftp.eu_tf2maps_net),
-        )
-
-        # Compress and put on redirect
-        await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
-        compressed_file = self.compress_file(filepath)
-        shutil.copyfile(
-            compressed_file,
-            os.path.join(
-                global_config.sftp.redirect_tf2maps_net.path,
-                os.path.basename(compressed_file)
-            )
-        )
-
-        # Insert map into DB
-        await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
-        await Maps.create(
-            discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
-            discord_user_id=ctx.author.id,
-            map=map_name,
-            url=link,
-            status="pending",
-            notes=notes,
-            added=datetime.now()
-        )
-
-        await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+        message = await ctx.reply(f"{loading} Adding your map...")
+        await self.add_map(ctx, message, link, notes)
 
     @commands.command(aliases=config.update.aliases, help=config.update.help)
     @commands.has_any_role(*config.update.role_names)
@@ -117,8 +52,8 @@ class MapList(commands.Cog):
                 await maps[0].save()
                 await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
-                await maps[0].delete()
-                await self.add(ctx, link, notes=notes)
+                message = await ctx.reply(f"{loading} Updating your map...")
+                await self.add_map(ctx, message, link, notes, update=True)
 
     @commands.command(aliases=config.delete.aliases, help=config.delete.help)
     @commands.has_any_role(*config.delete.role_names)
@@ -131,14 +66,16 @@ class MapList(commands.Cog):
             await maps[0].delete()
             await ctx.send(f"{success} Deleted `{maps[0].map}` from the list.")
 
+
     @commands.command(aliases=config.maps.aliases, help=config.maps.help)
     @commands.has_any_role(*config.maps.role_names)
     async def maps(self, ctx):
         us_server = get_srcds_server_info("us.tf2maps.net")
         eu_server = get_srcds_server_info("eu.tf2maps.net")
-        hour_ago = datetime.now() - timedelta(hours=1)
+        hour_ago = datetime.now() - timedelta(minutes=10)
 
         live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
+        live_maps = [] # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
         map_names = ""
@@ -160,42 +97,79 @@ class MapList(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @staticmethod
-    def compress_file(filepath):
-        output_filepath = f"{filepath}.bz2"
+    async def add_map(self, ctx, message, link, notes="", update=False):
+        # If not link; use fuzzy search
+        if not re.match("https?://", link):
+            link = await search_downloads(link, discord_user_id=ctx.author.id)
+            if not link:
+                await message.edit(content=f"{error} You have to use a hyperlink.")
+                await ctx.send_help(ctx.command)
+                return
+            else:
+                if len(link) > 1:
+                    await message.edit(content=f"{error} Found multiple links. Try a more specific link.")
+                    return
+                link = link[0]
 
-        with open(filepath, 'rb') as input:
-            with bz2.BZ2File(output_filepath, 'wb') as output:
-                shutil.copyfileobj(input, output)
+        # Find map download in link
+        link = await self.parse_link(link)
+        if not link:
+            await message.edit(content=f"{error} No valid link found.")
+            await ctx.send_help(ctx.command)
+            return
 
-        return output_filepath
+        await message.edit(content=f"{loading} Found link: {link}")
 
-    @staticmethod
-    async def upload_map(localfile, hostname, username, password, port, path):
-        async with asyncssh.connect(hostname, username=username, password=password, known_hosts=None) as conn:
-            async with conn.start_sftp_client() as sftp:
-                file_exists = await sftp.exists(os.path.join(path, os.path.basename(localfile)))
+        # Get map info
+        filename = await get_download_filename(link)
+        filepath = os.path.join(tempfile.mkdtemp(), filename)
+        map_name = re.sub("\.bsp$", "", filename)
 
-                if not file_exists:
-                    await sftp.put(localfile, path)
+        # Check for dupe
+        already_in_queue = await Maps.filter(map=map_name, status="pending").all()
+        if len(already_in_queue) > 0 and not update:
+            await message.edit(content=f"{warning} `{map_name}` is already on the list!")
+            return
 
-    @staticmethod
-    async def download_file(link, destination):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(link)
+        # Download the map
+        await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
+        await download_file(link, filepath)
 
-            with open(destination, "wb") as file:
-                file.write(response.content)
+        # Upload to servers
+        await message.edit(content=f"{loading} Uploading `{filename}` to game servers...")
+        await asyncio.gather(
+            upload_file(filepath, **global_config.sftp.us_tf2maps_net),
+            upload_file(filepath, **global_config.sftp.eu_tf2maps_net),
+        )
 
-    @staticmethod
-    async def get_download_filename(link):
-        async with httpx.AsyncClient() as client:
-            response = await client.head(link)
-            content_header = response.headers.get("content-disposition")
-            matches = re.search("filename=\"([\w.]+)\"", content_header)
-            filename = matches.group(1)
+        # Compress and put on redirect
+        await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
+        compressed_file = compress_file(filepath)
+        redirect_path = os.path.join(global_config.sftp.redirect_tf2maps_net.path, os.path.basename(compressed_file))
+        shutil.copyfile(compressed_file, redirect_path)
 
-            return filename
+        # Insert map into DB
+        await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
+
+        if update:
+            existing_map = already_in_queue[0]
+            existing_map.url = link
+            if notes:
+                existing_map.notes = notes
+            await existing_map.save()
+            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+        else:
+            await Maps.create(
+                discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
+                discord_user_id=ctx.author.id,
+                map=map_name,
+                url=link,
+                status="pending",
+                notes=notes,
+                added=datetime.now()
+            )
+            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+
 
     @staticmethod
     async def parse_link(link):

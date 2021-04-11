@@ -2,7 +2,6 @@
 import sys
 import asyncio
 import signal
-from datetime import datetime
 
 # 3rd Party Imports
 from discord.ext import commands
@@ -11,7 +10,6 @@ from tortoise import Tortoise
 
 # Local Imports
 from cogs import *
-from emojis import success, warning, error, info
 from utils import load_config, EmbedHelpCommand, setup_logger
 
 config = load_config()
@@ -77,7 +75,7 @@ async def init_db():
                 },
                 "starboard": {
                     "models": ["models.Starboard"],
-                    "default_connection": "tf2maps_bot"
+                    "default_connection": "starboard"
                 }
             }
         }

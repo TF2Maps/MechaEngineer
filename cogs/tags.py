@@ -10,7 +10,7 @@ from tortoise.query_utils import Q
 # Local Imports
 from models.Tag import Tag
 from utils import load_config, cog_error_handler
-from emojis import success, warning, error, info
+from utils.emojis import success, warning, error, info
 
 global_config = load_config()
 config = global_config.cogs.tags

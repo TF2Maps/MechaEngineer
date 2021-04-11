@@ -8,7 +8,7 @@ import valve.source.a2s
 
 # Local Imports
 from utils import load_config, get_srcds_server_info
-from emojis import success, warning, error, info, loading
+from utils.emojis import success, warning, error, info, loading
 
 global_config = load_config()
 config = global_config.cogs.servers

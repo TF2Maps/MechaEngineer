@@ -8,7 +8,7 @@ import databases
 
 # Local Imports
 from utils import load_config, cog_error_handler
-from emojis import success, warning, error, info, loading
+from utils.emojis import success, warning, error, info, loading
 
 
 global_config = load_config()
