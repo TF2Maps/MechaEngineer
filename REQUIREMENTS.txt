@@ -7,3 +7,7 @@ dotted_dict
 pytimeparse
 tabulate
 tortoise-orm[aiomysql]
+fastapi
+pydantic
+uvicorn
+jinja2
