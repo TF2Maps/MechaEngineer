@@ -3,7 +3,7 @@ pass
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 import valve.source.a2s
 from tortoise.functions import Avg, Count, Sum
 from tortoise import Tortoise
@@ -18,10 +18,10 @@ global_config = load_config()
 config = global_config.cogs.starboard
 
 
-class Starboard(commands.Cog):
+class Starboard(Cog):
     cog_command_error = cog_error_handler
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_reaction_add(self, reaction, user):
         formatted_reaction = f"<:{reaction.emoji.name}:{reaction.emoji.id}>"
 
@@ -39,7 +39,7 @@ class Starboard(commands.Cog):
             reaction_emoji=formatted_reaction
         )
 
-    @commands.command()
+    @command()
     async def stars(self, ctx):
         records = await (
             sb.filter(message_author_id=ctx.author.id)

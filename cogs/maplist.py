@@ -11,7 +11,7 @@ import bz2
 # 3rd Party Imports
 import asyncssh
 from bs4 import BeautifulSoup
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 import discord
 import httpx
 from tortoise.query_utils import Q
@@ -28,17 +28,17 @@ global_config = load_config()
 config = global_config.cogs.maplist
 
 
-class MapList(commands.Cog):
+class MapList(Cog):
     cog_command_error = cog_error_handler
 
-    @commands.command(aliases=config.add.aliases, help=config.add.help)
-    @commands.has_any_role(*config.add.role_names)
+    @command(aliases=config.add.aliases, help=config.add.help)
+    @has_any_role(*config.add.role_names)
     async def add(self, ctx, link, *, notes=""):
         message = await ctx.reply(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, notes)
 
-    @commands.command(aliases=config.update.aliases, help=config.update.help)
-    @commands.has_any_role(*config.update.role_names)
+    @command(aliases=config.update.aliases, help=config.update.help)
+    @has_any_role(*config.update.role_names)
     async def update(self, ctx, map_name, link, *, notes=""):
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
@@ -55,8 +55,8 @@ class MapList(commands.Cog):
                 message = await ctx.reply(f"{loading} Updating your map...")
                 await self.add_map(ctx, message, link, notes, update=True)
 
-    @commands.command(aliases=config.delete.aliases, help=config.delete.help)
-    @commands.has_any_role(*config.delete.role_names)
+    @command(aliases=config.delete.aliases, help=config.delete.help)
+    @has_any_role(*config.delete.role_names)
     async def delete(self, ctx, map_name):
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
@@ -67,8 +67,8 @@ class MapList(commands.Cog):
             await ctx.send(f"{success} Deleted `{maps[0].map}` from the list.")
 
 
-    @commands.command(aliases=config.maps.aliases, help=config.maps.help)
-    @commands.has_any_role(*config.maps.role_names)
+    @command(aliases=config.maps.aliases, help=config.maps.help)
+    @has_any_role(*config.maps.role_names)
     async def maps(self, ctx):
         us_server = get_srcds_server_info("us.tf2maps.net")
         eu_server = get_srcds_server_info("eu.tf2maps.net")

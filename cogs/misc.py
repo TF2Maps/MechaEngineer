@@ -3,7 +3,7 @@ pass
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 
 # Local Imports
 from utils import load_config, cog_error_handler
@@ -12,23 +12,23 @@ from utils.emojis import success, warning, error, info, github
 global_config = load_config()
 config = global_config.cogs.misc
 
-class Misc(commands.Cog):
+class Misc(Cog):
     cog_command_error = cog_error_handler
 
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_ready(self):
         await self.bot.change_presence(activity=discord.Game(name="Team Fortress 2 | .help"))
 
-    @commands.command(help=config.code.help)
-    @commands.has_any_role(*config.code.role_names)
+    @command(help=config.code.help)
+    @has_any_role(*config.code.role_names)
     async def test(self, ctx):
         pass
 
-    @commands.command(help=config.imp.help)
-    @commands.has_any_role(*config.imp.role_names)
+    @command(help=config.imp.help)
+    @has_any_role(*config.imp.role_names)
     async def imp(self, ctx):
         embed = discord.Embed(
             description=f"{config.imp.description}\n\u200b"
@@ -41,12 +41,12 @@ class Misc(commands.Cog):
         embed.set_footer(text=global_config.bot_footer)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=config.code.aliases, help=config.code.help)
-    @commands.has_any_role(*config.code.role_names)
+    @command(aliases=config.code.aliases, help=config.code.help)
+    @has_any_role(*config.code.role_names)
     async def code(self, ctx):
         await ctx.send(f"{github} You can find code my at https://github.com/TF2Maps/TF2M-bot-2021")
 
-    @commands.command(aliases=config.ping.aliases, help=config.ping.help)
-    @commands.has_any_role(*config.ping.role_names)
+    @command(aliases=config.ping.aliases, help=config.ping.help)
+    @has_any_role(*config.ping.role_names)
     async def ping(self, ctx):
         await ctx.send(f"Pong")

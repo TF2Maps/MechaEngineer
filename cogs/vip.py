@@ -3,7 +3,7 @@ pass
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 import databases
 
 # Local Imports
@@ -14,12 +14,11 @@ from utils.emojis import success, warning, error, info, loading
 global_config = load_config()
 config = global_config.cogs.vip
 
-
-class VIP(commands.Cog):
+class VIP(Cog):
     cog_command_error = cog_error_handler
 
-    @commands.command(aliases=config.upgrade.aliases, help=config.upgrade.help)
-    @commands.has_any_role(*config.upgrade.role_names)
+    @command(aliases=config.upgrade.aliases, help=config.upgrade.help)
+    @has_any_role(*config.upgrade.role_names)
     async def upgrade(self, ctx):
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()

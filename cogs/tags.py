@@ -3,7 +3,7 @@ pass
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role, group
 from tabulate import tabulate
 from tortoise.query_utils import Q
 
@@ -16,11 +16,11 @@ global_config = load_config()
 config = global_config.cogs.tags
 
 
-class Tags(commands.Cog):
+class Tags(Cog):
 
     cog_command_error = cog_error_handler
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
@@ -30,13 +30,13 @@ class Tags(commands.Cog):
         if tag:
             await message.channel.send(tag.value)
 
-    @commands.group()
-    @commands.has_any_role(*config.create.role_names)
+    @group()
+    @has_any_role(*config.create.role_names)
     async def tag(self, ctx):
         pass
 
     @tag.command(aliases=config.create.aliases, help=config.create.help)
-    @commands.has_any_role(*config.create.role_names)
+    @has_any_role(*config.create.role_names)
     async def create(self, ctx, key, *, value):
         tag, created = await Tag.get_or_create(
             key=key.lower(),
@@ -50,7 +50,7 @@ class Tags(commands.Cog):
             await ctx.send(f"{error} Tag already exists")
 
     @tag.command(aliases=config.remove.aliases, help=config.remove.help)
-    @commands.has_any_role(*config.remove.role_names)
+    @has_any_role(*config.remove.role_names)
     async def remove(self, ctx, key):
         tag = await Tag.get_or_none(key=key)
 
@@ -61,7 +61,7 @@ class Tags(commands.Cog):
             await ctx.send(f"{error} Tag `{key}` not found.")
 
     @tag.command(aliases=config.list.aliases, help=config.list.help)
-    @commands.has_any_role(*config.list.role_names)
+    @has_any_role(*config.list.role_names)
     async def list(self, ctx, *, search):
         tags = await Tag.filter(
             Q(key__icontains=search) | Q(author__icontains=search)
@@ -75,7 +75,7 @@ class Tags(commands.Cog):
         await ctx.send(f"```diff\n{table}\n```")
 
     @tag.command(aliases=config.count.aliases, help=config.count.help)
-    @commands.has_any_role(*config.count.role_names)
+    @has_any_role(*config.count.role_names)
     async def count(self, ctx):
         count = await Tag.all().count()
         await ctx.send(f"{info} There are `{count}` tags.")

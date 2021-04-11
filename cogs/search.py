@@ -3,7 +3,7 @@ import re
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 from bs4 import BeautifulSoup
 import httpx
 import databases
@@ -16,11 +16,11 @@ global_config = load_config()
 config = global_config.cogs.search
 
 
-class Search(commands.Cog):
+class Search(Cog):
     cog_command_error = cog_error_handler
 
-    @commands.command(aliases=config.vdc.aliases, help=config.vdc.help)
-    @commands.has_any_role(*config.vdc.role_names)
+    @command(aliases=config.vdc.aliases, help=config.vdc.help)
+    @has_any_role(*config.vdc.role_names)
     async def vdc(self, ctx, *, term):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
@@ -28,8 +28,8 @@ class Search(commands.Cog):
         embed = self.get_search_embed(links, term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=config.tf2m.aliases, help=config.tf2m.help)
-    @commands.has_any_role(*config.tf2m.role_names)
+    @command(aliases=config.tf2m.aliases, help=config.tf2m.help)
+    @has_any_role(*config.tf2m.role_names)
     async def tf2m(self, ctx, *, term):
         await ctx.trigger_typing()
         site = "tf2maps.net"
@@ -45,8 +45,8 @@ class Search(commands.Cog):
         embed = self.get_search_embed(links, term, "TF2 Maps", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=config.dl.aliases, help=config.dl.help)
-    @commands.has_any_role(*config.dl.role_names)
+    @command(aliases=config.dl.aliases, help=config.dl.help)
+    @has_any_role(*config.dl.role_names)
     async def dl(self, ctx, resource_name):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)

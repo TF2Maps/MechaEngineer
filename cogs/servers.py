@@ -3,7 +3,7 @@ pass
 
 # 3rd Party Imports
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, has_any_role
 import valve.source.a2s
 
 # Local Imports
@@ -14,24 +14,24 @@ global_config = load_config()
 config = global_config.cogs.servers
 
 
-class Servers(commands.Cog):
+class Servers(Cog):
 
-    @commands.command(aliases=config.usserver.aliases, help=config.usserver.help)
-    @commands.has_any_role(*config.usserver.role_names)
+    @command(aliases=config.usserver.aliases, help=config.usserver.help)
+    @has_any_role(*config.usserver.role_names)
     async def usserver(self, ctx):
         server = get_srcds_server_info("us.tf2maps.net")
         embed = await self.get_server_embed(server, "us.tf2maps.net")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=config.euserver.aliases, help=config.euserver.help)
-    @commands.has_any_role(*config.euserver.role_names)
+    @command(aliases=config.euserver.aliases, help=config.euserver.help)
+    @has_any_role(*config.euserver.role_names)
     async def euserver(self, ctx):
         server = get_srcds_server_info("eu.tf2maps.net")
         embed = await self.get_server_embed(server, "eu.tf2maps.net")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=config.active.aliases, help=config.active.help)
-    @commands.has_any_role(*config.active.role_names)
+    @command(aliases=config.active.aliases, help=config.active.help)
+    @has_any_role(*config.active.role_names)
     async def active(self, ctx):
         alive = False
 
