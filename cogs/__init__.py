@@ -4,3 +4,4 @@ from .maplist import MapList
 from .vip import VIP
 from .servers import Servers
 from .misc import Misc
+from .starboard import Starboard

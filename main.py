@@ -29,6 +29,7 @@ def main():
     bot.add_cog(Servers())
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
+    bot.add_cog(Starboard(bot))
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())
@@ -61,6 +62,7 @@ async def init_db():
         {
             "connections": {
                 "tags": config.databases.tags,
+                "starboard": config.databases.starboard,
                 "tf2maps_bot": config.databases.tf2maps_bot,
                 "tf2maps_site": config.databases.tf2maps_site
             },
@@ -71,6 +73,10 @@ async def init_db():
                 },
                 "maplist": {
                     "models": ["models.Maps"],
+                    "default_connection": "tf2maps_bot"
+                },
+                "starboard": {
+                    "models": ["models.Starboard"],
                     "default_connection": "tf2maps_bot"
                 }
             }
