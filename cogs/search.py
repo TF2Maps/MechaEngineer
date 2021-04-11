@@ -24,7 +24,7 @@ class Search(commands.Cog):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
         links = await self.search_with_bing(site, term)
-        embed = self.get_search_embed(links, term, "Valve Developer Wiki", config.vdc_icon, remove_prefix=f"https://{site}/")
+        embed = self.get_search_embed(links, term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
     @commands.command(aliases=config.tf2m.aliases, help=config.tf2m.help)
@@ -43,7 +43,7 @@ class Search(commands.Cog):
                 # "tf2maps.net/threads"
             ]
         )
-        embed = self.get_search_embed(links, term, "TF2 Maps", config.tf2m_icon, remove_prefix=f"https://{site}/")
+        embed = self.get_search_embed(links, term, "TF2 Maps", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
     @commands.command(aliases=config.dl.aliases, help=config.dl.help)
@@ -51,7 +51,7 @@ class Search(commands.Cog):
     async def dl(self, ctx, resource_name):
         site = "tf2maps.net"
         links = await self.search_downloads(resource_name)
-        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", config.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
+        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/downloads/")
         await ctx.send(embed=embed)
 
     @staticmethod

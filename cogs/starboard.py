@@ -15,7 +15,7 @@ from utils import load_config, cog_error_handler, get_srcds_server_info
 from emojis import success, warning, error, info, loading
 
 global_config = load_config()
-config = global_config.cogs.servers
+config = global_config.cogs.starboard
 
 
 class Starboard(commands.Cog):
@@ -23,19 +23,11 @@ class Starboard(commands.Cog):
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        valid_reactions = [
-            "<:rateLike:348604264819720192>",
-            "<:rateAgree:348604264622456832>",
-            "<:frogchamp:713121354148478986>",
-            "<:rateThanks:348604264681046017>",
-            "<:rateFunny:348604264538570753>",
-            "<:rateFriendly:348604264739897344>"
-        ]
         formatted_reaction = f"<:{reaction.emoji.name}:{reaction.emoji.id}>"
 
         if reaction.me:
             return
-        if not formatted_reaction in valid_reactions:
+        if not formatted_reaction in config.valid_emojis:
             return
         if reaction.message.author.id == user.id:
             return
@@ -65,7 +57,7 @@ class Starboard(commands.Cog):
         embed = discord.Embed(
             description=output
         )
-        embed.set_author(name="Starboard", icon_url="https://cdn.discordapp.com/attachments/655897074172166171/830531144704851998/star.png")
+        embed.set_author(name="Starboard", icon_url=global_config.icons.star_icon)
         embed.set_footer(text=global_config.bot_footer)
 
         await ctx.send(embed=embed)

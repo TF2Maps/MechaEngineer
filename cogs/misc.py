@@ -33,7 +33,7 @@ class Misc(commands.Cog):
         embed = discord.Embed(
             description=f"{config.imp.description}\n\u200b"
         )
-        embed.set_author(name=f"Imp Testing Commands", icon_url=global_config.cogs.search.tf2m_icon)
+        embed.set_author(name=f"Imp Testing Commands", icon_url=global_config.icons.tf2m_icon)
 
         for category, text in config.imp.command_list.items():
             embed.add_field(name=f"{category.capitalize()} Commands", value=f"{text}", inline=False)
