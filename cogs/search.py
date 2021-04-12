@@ -42,7 +42,7 @@ class Search(Cog):
                 "bot.tf2maps.net",
             ]
         )
-        embed = self.get_search_embed(links, term, "TF2 Maps", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
+        embed = self.get_search_embed(links, term, "TF2 Maps", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/")
         await ctx.send(embed=embed)
 
     @command(aliases=config.dl.aliases, help=config.dl.help)
@@ -50,7 +50,7 @@ class Search(Cog):
     async def dl(self, ctx, resource_name):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)
-        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/downloads/")
+        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
         await ctx.send(embed=embed)
 
     @staticmethod
