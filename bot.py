@@ -26,6 +26,7 @@ def main():
     bot.add_cog(MapList())
     bot.add_cog(Servers())
     bot.add_cog(VIP())
+    bot.add_cog(ModMail(bot))
     bot.add_cog(Misc(bot))
     bot.add_cog(Starboard(bot))
 

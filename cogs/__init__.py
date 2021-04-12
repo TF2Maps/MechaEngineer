@@ -5,3 +5,4 @@ from .vip import VIP
 from .servers import Servers
 from .misc import Misc
 from .starboard import Starboard
+from .modmail import ModMail
