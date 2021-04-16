@@ -44,7 +44,7 @@ class Misc(Cog):
     @command(aliases=config.code.aliases, help=config.code.help)
     @has_any_role(*config.code.role_names)
     async def code(self, ctx):
-        await ctx.send(f"{github} You can find code my at https://github.com/TF2Maps/TF2M-bot-2021")
+        await ctx.send(f"{github} You can find my code at https://github.com/TF2Maps/TF2M-bot-2021")
 
     @command(aliases=config.ping.aliases, help=config.ping.help)
     @has_any_role(*config.ping.role_names)
