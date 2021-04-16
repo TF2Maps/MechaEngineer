@@ -85,8 +85,8 @@ class MapList(Cog):
             else:
                 map_names += f"• {item.map}\n"
 
-        embed = discord.Embed(description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist.php\n\u200b")
-        embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist.php", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
+        embed = discord.Embed(description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
+        embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
 
         if live_maps:
             live_map_names = "\n".join([i.map for i in live_maps])
@@ -175,7 +175,7 @@ class MapList(Cog):
     async def parse_link(link):
         parsed_url = urlparse(link)
 
-        if parsed_url.netloc == "tf2maps.net":
+        if parsed_url.netloc == "tf2maps.net" or parsed_url.netloc == "www.tf2maps.net":
             # Example: https://tf2maps.net/downloads/pullsnake.11004/
             if re.match("^/(downloads|threads)/[\w\-]+\.\d+\/?$", parsed_url.path):
                 async with httpx.AsyncClient() as client:
