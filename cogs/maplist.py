@@ -19,7 +19,7 @@ from tortoise.query_utils import Q
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
-from utils.files import compress_file, download_file, get_download_filename, upload_file
+from utils.files import compress_file, download_file, get_download_filename, upload_file, remote_file_exists
 from utils.search import search_downloads
 
 from models import Maps
@@ -30,6 +30,41 @@ config = global_config.cogs.maplist
 
 class MapList(Cog):
     cog_command_error = cog_error_handler
+
+    @command()
+    @has_any_role(*config.add.role_names)
+    async def uploadcheck(self, ctx, map_name):
+        message = await ctx.reply(f"{loading} Checking...")
+
+        path = global_config.sftp.redirect_tf2maps_net.path
+        redirect = os.path.exists(os.path.join(path, f"{map_name}.bsp"))
+        if not redirect:
+            redirect = os.path.exists(os.path.join(path, f"{map_name}.bsp.bz2"))
+
+        us, eu = await asyncio.gather(
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net)
+        )
+
+        output = ""
+        if us:
+            output += f"{success} US Server\n"
+        else:
+            output += f"{error} US Server\n"
+        if eu:
+            output += f"{success} EU Server\n"
+        else:
+            output += f"{error} EU Server\n"
+        if redirect:
+            output += f"{success} Redirect Server"
+        else:
+            output += f"{error} Redirect Server"
+
+        embed = discord.Embed(description=output)
+        embed.set_author(name=f"Map Upload Status")
+        embed.set_footer(text=global_config.bot_footer)
+
+        await message.edit(embed=embed, content="")
 
     @command(aliases=config.add.aliases, help=config.add.help)
     @has_any_role(*config.add.role_names)
@@ -53,12 +88,21 @@ class MapList(Cog):
                 await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
                 message = await ctx.reply(f"{loading} Updating your map...")
-                await self.add_map(ctx, message, link, notes, update=True)
+                await self.add_map(ctx, message, link, notes, old_map=maps[0])
 
     @command(aliases=config.delete.aliases, help=config.delete.help)
     @has_any_role(*config.delete.role_names)
     async def delete(self, ctx, map_name):
-        maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
+        maps = []
+        override_roles = set(config.delete.override_roles)
+        user_roles = set([role.name for role in ctx.author.roles])
+
+        override = len(override_roles.intersection(user_roles)) > 0
+
+        if override:
+            maps = await Maps.filter(map__icontains=map_name, status="pending").all()
+        else:
+            maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
             await ctx.send(f"{error} You don't have a map with that name on the list!")
@@ -70,11 +114,11 @@ class MapList(Cog):
     @command(aliases=config.maps.aliases, help=config.maps.help)
     @has_any_role(*config.maps.role_names)
     async def maps(self, ctx):
-        us_server = get_srcds_server_info("us.tf2maps.net")
-        eu_server = get_srcds_server_info("eu.tf2maps.net")
-        hour_ago = datetime.now() - timedelta(minutes=10)
+        # us_server = get_srcds_server_info("us.tf2maps.net")
+        # eu_server = get_srcds_server_info("eu.tf2maps.net")
+        # hour_ago = datetime.now() - timedelta(minutes=10)
 
-        live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
+        # live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
         live_maps = [] # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
@@ -97,7 +141,7 @@ class MapList(Cog):
 
         await ctx.send(embed=embed)
 
-    async def add_map(self, ctx, message, link, notes="", update=False):
+    async def add_map(self, ctx, message, link, notes="", old_map=None):
         # If not link; use fuzzy search
         if not re.match("https?://", link):
             link = await search_downloads(link, discord_user_id=ctx.author.id)
@@ -127,7 +171,7 @@ class MapList(Cog):
 
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
-        if len(already_in_queue) > 0 and not update:
+        if len(already_in_queue) > 0 and not old_map:
             await message.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
@@ -151,12 +195,12 @@ class MapList(Cog):
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
 
-        if update:
-            existing_map = already_in_queue[0]
-            existing_map.url = link
+        if old_map:
+            old_map.url = link
+            old_map.map = map_name
             if notes:
-                existing_map.notes = notes
-            await existing_map.save()
+                old_map.notes = notes
+            await old_map.save()
             await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
         else:
             await Maps.create(
