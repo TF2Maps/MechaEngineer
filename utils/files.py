@@ -45,3 +45,10 @@ async def upload_file(localfile, hostname, username, password, port, path, force
 
             if not file_exists or force:
                 await sftp.put(localfile, path)
+
+
+async def remote_file_exists(filename, hostname, username, password, port, path):
+    async with asyncssh.connect(hostname, username=username, password=password, known_hosts=None) as conn:
+        async with conn.start_sftp_client() as sftp:
+            exists = await sftp.exists(os.path.join(path, os.path.basename(filename)))
+            return exists
