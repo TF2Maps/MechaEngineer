@@ -31,7 +31,7 @@ class Misc(Cog):
     @has_any_role(*config.imp.role_names)
     async def imp(self, ctx):
         embed = discord.Embed(
-            description=f"{config.imp.description}\n\u200b"
+            description=f"{config.imp.description}"
         )
         embed.set_author(name=f"Imp Testing Commands", icon_url=global_config.icons.tf2m_icon)
 
