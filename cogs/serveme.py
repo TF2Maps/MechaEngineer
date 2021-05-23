@@ -70,13 +70,13 @@ class ServeMe(Cog):
         await message.reply(file=discord.File(filepath))
         os.remove(filepath)
 
-    @command()
-    @has_any_role(*config.serveme.role_names)
+    @command(aliases=config.shutdown.aliases, help=config.shutdown.help)
+    @has_any_role(*config.shutdown.role_names)
     async def shutdown(self, ctx, request_id):
         raise NotImplementedError
 
-    @command()
-    @has_any_role(*config.serveme.role_names)
+    @command(aliases=config.serverlist.aliases, help=config.serverlist.help)
+    @has_any_role(*config.serverlist.role_names)
     async def serverlist(self, ctx):
         await ctx.trigger_typing()
         servers = list_servers()
