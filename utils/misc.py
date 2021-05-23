@@ -21,3 +21,22 @@ async def wait_for_tcp(ip, port, retries=60):
             await asyncio.sleep(5)
     else:
         return False
+
+
+def readable_time(elapsed):
+    readable = ""
+
+    days = int(elapsed / (60 * 60 * 24))
+    hours = int((elapsed / (60 * 60)) % 24)
+    minutes = int((elapsed % (60 * 60)) / 60)
+
+    if(days > 0):
+        readable += str(days) + " days "
+
+    if(hours > 0):
+        readable += str(hours) + " hours "
+
+    if(minutes > 0):
+        readable += str(minutes) + " minutes "
+
+    return readable

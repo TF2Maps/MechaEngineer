@@ -1,4 +1,5 @@
 discord
+boto3
 httpx
 beautifulsoup4
 python-valve
@@ -11,3 +12,4 @@ fastapi
 pydantic
 uvicorn
 jinja2
+imgkit
