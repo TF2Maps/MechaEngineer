@@ -1,5 +1,6 @@
 # Std Lib Imports
-pass
+from time import strftime
+import logging
 
 # 3rd Party Imports
 import discord
@@ -12,15 +13,30 @@ from utils.emojis import success, warning, error, info, github
 global_config = load_config()
 config = global_config.cogs.misc
 
+
 class Misc(Cog):
     cog_command_error = cog_error_handler
 
     def __init__(self, bot):
         self.bot = bot
 
+    @Cog.listener(name='on_command')
+    async def command_logger(self, ctx):
+        logger = logging.getLogger("bot")
+        logger.info(f"User {ctx.author.name}({ctx.author.id}) invoked command \"{ctx.command.cog.__class__.__name__}.{ctx.command}\" in #{ctx.channel}")
+
     @Cog.listener()
     async def on_ready(self):
-        await self.bot.change_presence(activity=discord.Game(name="Team Fortress 2 | .help"))
+        month = strftime('%B')
+        game_name = "Team Fortress 2"
+        if month == "October":
+            game_name = "Scream Fortress 2"
+        elif month == "February":
+            game_name = "Love Fortress 2"
+        elif month == "December":
+            game_name = "Santa Fortress 2"
+
+        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | .help"))
 
     @command(help=config.code.help)
     @has_any_role(*config.code.role_names)

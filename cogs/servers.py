@@ -7,7 +7,7 @@ from discord.ext.commands import Cog, command, has_any_role
 import valve.source.a2s
 
 # Local Imports
-from utils import load_config, get_srcds_server_info
+from utils import load_config, get_srcds_server_info, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
 
 global_config = load_config()
@@ -15,6 +15,7 @@ config = global_config.cogs.servers
 
 
 class Servers(Cog):
+    cog_command_error = cog_error_handler
 
     @command(aliases=config.usserver.aliases, help=config.usserver.help)
     @has_any_role(*config.usserver.role_names)

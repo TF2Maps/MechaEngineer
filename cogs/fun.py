@@ -1,5 +1,6 @@
 
 class Fun(commands.Cog):
+    cog_command_error = cog_error_handler
 
     @commands.command()
     @commands.has_any_role('Gold Stars', 'Server Mods', 'Staff')
