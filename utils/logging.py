@@ -6,14 +6,18 @@ import sys
 
 
 def setup_logger(level):
-    # TODO check that level is a valid level
-
     console_handler = logging.StreamHandler(sys.stdout)
     console_formatter = ColoredFormatter(
         "%(levelname)s \u001b[1;30m%(name)s.%(funcName)s:%(lineno)s \u001b[0m'%(message)s'"
     )
     console_handler.setFormatter(console_formatter)
     console_handler.setLevel(level)
+
+    logging.getLogger("botocore").setLevel(logging.WARNING)
+    logging.getLogger("asyncssh").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("databases").setLevel(logging.WARNING)
 
     log = logging.getLogger('')
     log.setLevel(level)
