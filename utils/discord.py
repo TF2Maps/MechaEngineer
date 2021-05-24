@@ -33,7 +33,7 @@ async def cog_error_handler(self, ctx, error_message):
         await ctx.send(f'{error} Too many arguments.')
         await ctx.send_help(ctx.command)
     elif isinstance(error_message, commands.MissingRequiredArgument):
-        await ctx.send(f"{error} Missing required arugments")
+        await ctx.send(f"{error} Missing required arguments")
         await ctx.send_help(ctx.command)
     elif isinstance(error_message, commands.MissingAnyRole):
         await ctx.send(f"{error} {error_message}")
