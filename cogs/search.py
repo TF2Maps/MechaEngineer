@@ -26,7 +26,7 @@ class Search(Cog):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
         links = await search_with_bing(site, term)
-        embed = self.get_search_embed(links[10:], term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
+        embed = self.get_search_embed(links[:10], term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         try:
             await ctx.send(embed=embed)
         except discord.errors.HTTPException:
