@@ -219,6 +219,7 @@ class MapList(Cog):
     async def parse_link(link):
         parsed_url = urlparse(link)
 
+        matched_link = None
         if parsed_url.netloc == "tf2maps.net" or parsed_url.netloc == "www.tf2maps.net":
             # Example: https://tf2maps.net/downloads/pullsnake.11004/
             if re.match("^/(downloads|threads)/[\w\-]+\.\d+\/?$", parsed_url.path):
@@ -227,18 +228,24 @@ class MapList(Cog):
                 soup = BeautifulSoup(response.text, 'html.parser')
                 href = soup.select("label.downloadButton > a.inner")[0].get("href")
 
-                return f"https://tf2maps.net/{href}"
+                matched_link = f"https://tf2maps.net/{href}"
 
             # Example: https://tf2maps.net/downloads/pullsnake.11004/download?version=29169
             elif re.match("^/downloads/\w+\.\d+/download$", parsed_url.path):
-                return link
+                matched_link = link
 
+        async with httpx.AsyncClient() as client:
+            response = await client.head(link, allow_redirects=True)
+            redir = urlparse(str(response.url))
+
+            # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
+            if redir.netloc == "dropbox.com" or redir.netloc == "www.dropbox.com":
+                matched_link = str(response.url).replace("dl=0", "dl=1")
+
+        return matched_link
 
         # TODO Direct link
         # Example: http://maps.tf2.games/maps/jump_pyro_b1.bsp
-
-        # TODO Dropbox link
-        # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
 
         # TODO Google Drive Link
         # Example: https://drive.google.com/file/d/17KXUZV7iHUL_A5pwOGNbVkbeCXUDIOgo/view?usp=sharing
