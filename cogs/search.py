@@ -11,6 +11,7 @@ import databases
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.search import search_with_bing, search_downloads
+from utils.emojis import success, warning, error, info, loading
 
 global_config = load_config()
 config = global_config.cogs.search
@@ -25,8 +26,11 @@ class Search(Cog):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
         links = await search_with_bing(site, term)
-        embed = self.get_search_embed(links, term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
-        await ctx.send(embed=embed)
+        embed = self.get_search_embed(links[10:], term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
+        try:
+            await ctx.send(embed=embed)
+        except discord.errors.HTTPException:
+            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
 
     @command(aliases=config.tf2m.aliases, help=config.tf2m.help)
     @has_any_role(*config.tf2m.role_names)
@@ -42,16 +46,22 @@ class Search(Cog):
                 "bot.tf2maps.net",
             ]
         )
-        embed = self.get_search_embed(links, term, "TF2 Maps", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/")
-        await ctx.send(embed=embed)
+        embed = self.get_search_embed(links[:10], term, "TF2 Maps", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/")
+        try:
+            await ctx.send(embed=embed)
+        except discord.errors.HTTPException:
+            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
 
     @command(aliases=config.dl.aliases, help=config.dl.help)
     @has_any_role(*config.dl.role_names)
     async def dl(self, ctx, resource_name):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)
-        embed = self.get_search_embed(links, resource_name, "TF2 Maps Downloads", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
-        await ctx.send(embed=embed)
+        embed = self.get_search_embed(links[:10], resource_name, "TF2 Maps Downloads", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
+        try:
+            await ctx.send(embed=embed)
+        except discord.errors.HTTPException:
+            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
 
     @staticmethod
     def get_search_embed(links, term, title, icon, remove_prefix=""):

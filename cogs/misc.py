@@ -36,7 +36,7 @@ class Misc(Cog):
         elif month == "December":
             game_name = "Santa Fortress 2"
 
-        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | .help"))
+        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | !help"))
 
     @command(help=config.code.help)
     @has_any_role(*config.code.role_names)
