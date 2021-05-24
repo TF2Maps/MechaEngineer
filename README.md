@@ -1,7 +1,7 @@
 # MechaEngineer
 The current TF2 Maps Discord Bot
 
-#MapList
+##MapList
 `add`
 -Adds a map to the testing queue and upload the map file to the TF2Maps.net servers. Notes are optional.
 `delete`
@@ -12,7 +12,7 @@ The current TF2 Maps Discord Bot
 -
 `uploadcheck`
 -
-#Misc
+##Misc
 `code`
 -
 `imp`
@@ -21,23 +21,23 @@ The current TF2 Maps Discord Bot
 -
 `test`
 -
-#ServeMe
+##ServeMe
 `serveme`
 -
 `serverlist`
 -
 `shutdown`
 -
-#Servers
-`active'
+##Servers
+`active`
 -
 `eusevrer`
 -
 `usserver`
 -
-#Tags
+##Tags
 `tags`
 -
-#VIP
+##VIP
 `upgrade`
 -
