@@ -1,7 +1,7 @@
 # MechaEngineer
 The current TF2 Maps Discord Bot
 
-##MapList:
+###MapList:
 `add`
         -Adds a map to the testing queue and upload the map file to the TF2Maps.net servers. Notes are optional.
         
@@ -17,7 +17,7 @@ The current TF2 Maps Discord Bot
 `uploadcheck`
         -Checks if map is on EU, US, and FastDL
         
-##Misc:
+###Misc:
 `code`
         -Display github page.
         
@@ -27,7 +27,7 @@ The current TF2 Maps Discord Bot
 `ping`
         -Replies with pong.
         
-##ServeMe:
+###ServeMe:
 `serveme`
         -Request ad-hoc server.
         
@@ -37,7 +37,7 @@ The current TF2 Maps Discord Bot
 `shutdown`
         -Shutdown a ad-hoc server.
         
-##Servers:
+###Servers:
 `active`
         -Check for active players on both EU and US server.
         
@@ -47,11 +47,11 @@ The current TF2 Maps Discord Bot
 `usserver`
         -Check US server status.
         
-##Tags:
+###Tags:
 `tag`
         -Shows other subset commands for tags.
         
-##VIP:
+###VIP:
 `upgrade`
         -If account is linked on TF2Maps.net, bot will apply VIP if they have bought it.
         
