@@ -37,6 +37,8 @@ async def cog_error_handler(self, ctx, error_message):
         await ctx.send_help(ctx.command)
     elif isinstance(error_message, commands.MissingAnyRole):
         await ctx.send(f"{error} {error_message}")
+    elif isinstance(error_message, discord.errors.DiscordServerError):
+        await ctx.send(f"{error} Discord API returned a fatal error. Try command again later")
     else:
         tb = traceback.format_exception(None, error_message.original, error_message.original.__traceback__)
         await ctx.send(f"{error} <@65497519504764928> Unhandled Exception:\n ```\n{''.join(tb)}```")
