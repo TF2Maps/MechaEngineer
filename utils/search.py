@@ -13,6 +13,9 @@ import valve.source.a2s
 from .config import load_config
 global_config = load_config()
 
+class ForumUserNotFoundException(Exception):
+    pass
+
 
 async def search_downloads(resource_name, discord_user_id=None):
     database = databases.Database(global_config.databases.tf2maps_site)
@@ -23,6 +26,9 @@ async def search_downloads(resource_name, discord_user_id=None):
         query = "SELECT user_id FROM xf_user_field_value WHERE field_id = :field_id AND field_value = :field_value"
         values = {"field_id": "discord_user_id", "field_value": discord_user_id}
         result = await database.fetch_one(query=query, values=values)
+        if not result:
+            raise ForumUserNotFoundException
+
         forum_user_id = result[0]
         query = 'SELECT title,resource_id from xf_resource where user_id=:field_user_id AND title LIKE :field_title'
         values = {"field_user_id": forum_user_id, "field_title": f"%{resource_name}%"}

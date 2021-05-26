@@ -20,7 +20,7 @@ from tortoise.query_utils import Q
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
 from utils.files import compress_file, download_file, get_download_filename, upload_file, remote_file_exists
-from utils.search import search_downloads
+from utils.search import search_downloads, ForumUserNotFoundException
 
 from models import Maps
 
@@ -144,14 +144,19 @@ class MapList(Cog):
     async def add_map(self, ctx, message, link, notes="", old_map=None):
         # If not link; use fuzzy search
         if not re.match("https?://", link):
-            link = await search_downloads(link, discord_user_id=ctx.author.id)
+            try:
+                link = await search_downloads(link, discord_user_id=ctx.author.id)
+            except ForumUserNotFoundException:
+                await message.edit(content=f"{error} You either need to provide a link or need to connect your TF2Maps.net account to Discord. See <#{global_config.faq_channel_id}>")
+                return
+
             if not link:
-                await message.edit(content=f"{error} You have to use a hyperlink.")
+                await message.edit(content=f"{error} Could not find a download by the name. Try using a link instead.")
                 await ctx.send_help(ctx.command)
                 return
             else:
                 if len(link) > 1:
-                    await message.edit(content=f"{error} Found multiple links. Try a more specific link.")
+                    await message.edit(content=f"{error} Found multiple links. Use a more specific link.")
                     return
                 link = link[0]
 
