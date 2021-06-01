@@ -83,6 +83,7 @@ class ServeMe(Cog):
 
         if len(servers) == 0:
             await ctx.send(f"{error} There are no ad-hoc servers running right now.")
+            return
 
         name_column = ""
         uptime_column = ""
