@@ -17,6 +17,7 @@ from utils import load_config, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
 from utils import get_random_password, wait_for_tcp, Timehash, readable_time
 from utils.aws import create_server, get_instance_ip, region_to_location, list_servers, ec2_tags_to_dict
+from utils.discord import not_nobot_role
 
 global_config = load_config()
 config = global_config.cogs.serveme
@@ -143,7 +144,6 @@ class ServeMe(Cog):
 
         # Ready!
         connect_info = (
-            f"**steam://{ip_address}:27015/{password}**\n"
             "```nginx\n"
             f"connect {ip_address}; password {password}\n"
             "```"

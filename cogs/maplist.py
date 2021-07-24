@@ -21,6 +21,7 @@ from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
 from utils.files import compress_file, download_file, get_download_filename, upload_file, remote_file_exists
 from utils.search import search_downloads, ForumUserNotFoundException
+from utils.discord import not_nobot_role
 
 from models import Maps
 
@@ -33,6 +34,7 @@ class MapList(Cog):
 
     @command()
     @has_any_role(*config.add.role_names)
+    @not_nobot_role()
     async def uploadcheck(self, ctx, map_name):
         message = await ctx.reply(f"{loading} Checking...")
 
@@ -68,12 +70,14 @@ class MapList(Cog):
 
     @command(aliases=config.add.aliases, help=config.add.help)
     @has_any_role(*config.add.role_names)
+    @not_nobot_role()
     async def add(self, ctx, link, *, notes=""):
         message = await ctx.reply(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, notes)
 
     @command(aliases=config.update.aliases, help=config.update.help)
     @has_any_role(*config.update.role_names)
+    @not_nobot_role()
     async def update(self, ctx, map_name, link, *, notes=""):
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
@@ -92,6 +96,7 @@ class MapList(Cog):
 
     @command(aliases=config.delete.aliases, help=config.delete.help)
     @has_any_role(*config.delete.role_names)
+    @not_nobot_role()
     async def delete(self, ctx, map_name):
         maps = []
         override_roles = set(config.delete.override_roles)
@@ -113,6 +118,7 @@ class MapList(Cog):
 
     @command(aliases=config.maps.aliases, help=config.maps.help)
     @has_any_role(*config.maps.role_names)
+    @not_nobot_role()
     async def maps(self, ctx):
         # us_server = get_srcds_server_info("us.tf2maps.net")
         # eu_server = get_srcds_server_info("eu.tf2maps.net")

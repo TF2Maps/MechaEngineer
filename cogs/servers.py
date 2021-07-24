@@ -9,6 +9,7 @@ import valve.source.a2s
 # Local Imports
 from utils import load_config, get_srcds_server_info, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
+from utils.discord import not_nobot_role
 
 global_config = load_config()
 config = global_config.cogs.servers
@@ -19,6 +20,7 @@ class Servers(Cog):
 
     @command(aliases=config.usserver.aliases, help=config.usserver.help)
     @has_any_role(*config.usserver.role_names)
+    @not_nobot_role()
     async def usserver(self, ctx):
         server = get_srcds_server_info("us.tf2maps.net")
         embed = await self.get_server_embed(server, "us.tf2maps.net")
@@ -26,6 +28,7 @@ class Servers(Cog):
 
     @command(aliases=config.euserver.aliases, help=config.euserver.help)
     @has_any_role(*config.euserver.role_names)
+    @not_nobot_role()
     async def euserver(self, ctx):
         server = get_srcds_server_info("eu.tf2maps.net")
         embed = await self.get_server_embed(server, "eu.tf2maps.net")
@@ -33,6 +36,7 @@ class Servers(Cog):
 
     @command(aliases=config.active.aliases, help=config.active.help)
     @has_any_role(*config.active.role_names)
+    @not_nobot_role()
     async def active(self, ctx):
         alive = False
 

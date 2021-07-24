@@ -9,6 +9,7 @@ from discord.ext.commands import Cog, command, has_any_role
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.emojis import success, warning, error, info, github
+from utils.discord import not_nobot_role
 
 global_config = load_config()
 config = global_config.cogs.misc
@@ -40,11 +41,13 @@ class Misc(Cog):
 
     @command(help=config.code.help)
     @has_any_role(*config.code.role_names)
+    @not_nobot_role()
     async def test(self, ctx):
         pass
 
     @command(help=config.imp.help)
     @has_any_role(*config.imp.role_names)
+    @not_nobot_role()
     async def imp(self, ctx):
         embed = discord.Embed(
             description=f"{config.imp.description}"
@@ -59,10 +62,12 @@ class Misc(Cog):
 
     @command(aliases=config.code.aliases, help=config.code.help)
     @has_any_role(*config.code.role_names)
+    @not_nobot_role()
     async def code(self, ctx):
         await ctx.send(f"{github} You can find my code at https://github.com/TF2Maps/TF2M-bot-2021")
 
     @command(aliases=config.ping.aliases, help=config.ping.help)
     @has_any_role(*config.ping.role_names)
+    @not_nobot_role()
     async def ping(self, ctx):
         await ctx.send(f"Pong")

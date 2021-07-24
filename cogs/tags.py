@@ -11,6 +11,7 @@ from tortoise.query_utils import Q
 from models.Tag import Tag
 from utils import load_config, cog_error_handler
 from utils.emojis import success, warning, error, info
+from utils.discord import not_nobot_role
 
 global_config = load_config()
 config = global_config.cogs.tags
@@ -32,11 +33,13 @@ class Tags(Cog):
 
     @group()
     @has_any_role(*config.create.role_names)
+    @not_nobot_role()
     async def tag(self, ctx):
         pass
 
     @tag.command(aliases=config.create.aliases, help=config.create.help)
     @has_any_role(*config.create.role_names)
+    @not_nobot_role()
     async def create(self, ctx, key, *, value):
         tag, created = await Tag.get_or_create(
             key=key.lower(),
@@ -51,6 +54,7 @@ class Tags(Cog):
 
     @tag.command(aliases=config.remove.aliases, help=config.remove.help)
     @has_any_role(*config.remove.role_names)
+    @not_nobot_role()
     async def remove(self, ctx, key):
         tag = await Tag.get_or_none(key=key)
 
@@ -62,6 +66,7 @@ class Tags(Cog):
 
     @tag.command(aliases=config.list.aliases, help=config.list.help)
     @has_any_role(*config.list.role_names)
+    @not_nobot_role()
     async def list(self, ctx, *, search):
         tags = await Tag.filter(
             Q(key__icontains=search) | Q(author__icontains=search)
@@ -76,6 +81,7 @@ class Tags(Cog):
 
     @tag.command(aliases=config.count.aliases, help=config.count.help)
     @has_any_role(*config.count.role_names)
+    @not_nobot_role()
     async def count(self, ctx):
         count = await Tag.all().count()
         await ctx.send(f"{info} There are `{count}` tags.")

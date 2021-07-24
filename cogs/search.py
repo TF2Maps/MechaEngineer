@@ -12,6 +12,7 @@ import databases
 from utils import load_config, cog_error_handler
 from utils.search import search_with_bing, search_downloads
 from utils.emojis import success, warning, error, info, loading
+from utils.discord import not_nobot_role
 
 global_config = load_config()
 config = global_config.cogs.search
@@ -22,6 +23,7 @@ class Search(Cog):
 
     @command(aliases=config.vdc.aliases, help=config.vdc.help)
     @has_any_role(*config.vdc.role_names)
+    @not_nobot_role()
     async def vdc(self, ctx, *, term):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
@@ -34,6 +36,7 @@ class Search(Cog):
 
     @command(aliases=config.tf2m.aliases, help=config.tf2m.help)
     @has_any_role(*config.tf2m.role_names)
+    @not_nobot_role()
     async def tf2m(self, ctx, *, term):
         await ctx.trigger_typing()
         site = "tf2maps.net"
@@ -54,6 +57,7 @@ class Search(Cog):
 
     @command(aliases=config.dl.aliases, help=config.dl.help)
     @has_any_role(*config.dl.role_names)
+    @not_nobot_role()
     async def dl(self, ctx, resource_name):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)

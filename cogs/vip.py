@@ -9,6 +9,7 @@ import databases
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
+from utils.discord import not_nobot_role
 
 
 global_config = load_config()
@@ -19,6 +20,7 @@ class VIP(Cog):
 
     @command(aliases=config.upgrade.aliases, help=config.upgrade.help)
     @has_any_role(*config.upgrade.role_names)
+    @not_nobot_role()
     async def upgrade(self, ctx):
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
