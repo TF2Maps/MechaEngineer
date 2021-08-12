@@ -181,7 +181,7 @@ class MapList(Cog):
         map_name = re.sub("\.bsp$", "", filename)
         
         # Must be a BSP
-        if not re.match("\.bsp$", link):
+        if not re.match("\.bsp$", filename):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
             return
 
