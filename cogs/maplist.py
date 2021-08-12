@@ -179,6 +179,11 @@ class MapList(Cog):
         filename = await get_download_filename(link)
         filepath = os.path.join(tempfile.mkdtemp(), filename)
         map_name = re.sub("\.bsp$", "", filename)
+        
+        # Must be a BSP
+        if not re.match("\.bsp$", link):
+            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
+            return
 
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
