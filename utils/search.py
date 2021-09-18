@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import httpx
 import databases
 from dotted_dict import DottedDict
-import valve.source.a2s
+import a2s
 
 # Local Imports
 from .config import load_config
@@ -66,6 +66,4 @@ async def search_with_bing(site, term, exclude=[]):
 
 
 def get_srcds_server_info(host, port=27015):
-    with valve.source.a2s.ServerQuerier((host, port)) as server:
-        server_info = server.info()
-        return DottedDict(dict(server_info))
+    return a2s.info((host, port))

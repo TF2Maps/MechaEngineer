@@ -2,7 +2,7 @@ discord
 boto3
 httpx
 beautifulsoup4
-python-valve
+python-a2s
 asyncssh
 dotted_dict
 pytimeparse

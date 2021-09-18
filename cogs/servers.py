@@ -63,7 +63,7 @@ class Servers(Cog):
             description=f"**steam://connect/{host}:27015**"
         )
         embed.set_author(name=server_data.server_name, icon_url=global_config.icons.tf2m_icon)
-        embed.add_field(name="Current Map", value=server_data.map, inline=True)
+        embed.add_field(name="Current Map", value=server_data.map_name, inline=True)
         embed.add_field(name="Player Count", value=player_count, inline=True)
         embed.set_footer(text=global_config.bot_footer)
 
