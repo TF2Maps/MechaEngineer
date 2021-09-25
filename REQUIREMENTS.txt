@@ -1,0 +1,15 @@
+discord
+boto3
+httpx
+beautifulsoup4
+python-a2s
+asyncssh
+dotted_dict
+pytimeparse
+tabulate
+tortoise-orm[aiomysql]
+fastapi
+pydantic
+uvicorn
+jinja2
+imgkit

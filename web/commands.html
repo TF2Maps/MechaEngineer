@@ -1,0 +1,31 @@
+<html>
+<head>
+    <title>Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
+</head>
+<body>
+    {% for name, config in categories.items() %}
+        <h1>{{ name }}</h1>
+        <ul>
+        {% for command_name, command_config in config.items() %}
+            <li>
+                <h3 style="display:inline">{{ command_name }}</h3>
+                <div style="margin-left: 3em">
+                    <p><b>Required Role</b>: {{ command_config.role_names }}</p>
+                    <p><b>Aliases</b>: {{ command_config.aliases }}</p>
+
+                    <p>
+                        <b>Help</b>:<br>
+                        {% autoescape false %}
+                        {{ command_config.help | replace("\n", "<br />") }}
+                        {% endautoescape %}
+                    </p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        <hr>
+    {% endfor %}
+
+</body>
+</html>
