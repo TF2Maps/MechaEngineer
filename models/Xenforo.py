@@ -2,7 +2,7 @@
 from enum import Enum
 
 # 3rd Party Imports
-from tortoise import Tortoise,
+from tortoise import Tortoise
 from tortoise.fields import *
 from tortoise.models import Model
 
