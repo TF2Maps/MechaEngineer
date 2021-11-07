@@ -22,12 +22,16 @@ def main():
 
     # Load Plugins
     bot.add_cog(Search())
-    bot.add_cog(Tags())
+    #bot.add_cog(Tags())
     bot.add_cog(MapList())
     bot.add_cog(Servers())
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
     bot.add_cog(ServeMe())
+    #my stuff
+    #bot.add_cog(rcon())
+    bot.add_cog(server())
+    #bot.add_cog(twitter())
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())
@@ -59,24 +63,24 @@ async def init_db():
     await Tortoise.init(
         {
             "connections": {
-                "tags": config.databases.tags,
-                "starboard": config.databases.starboard,
+                #"tags": config.databases.tags,
+                #"starboard": config.databases.starboard,
                 "tf2maps_bot": config.databases.tf2maps_bot,
                 "tf2maps_site": config.databases.tf2maps_site
             },
             "apps": {
-                "tags": {
-                    "models": ["models.Tag"],
-                    "default_connection": "tags"
-                },
+                #"tags": {
+                #    "models": ["models.Tag"],
+                #    "default_connection": "tags"
+                #},
                 "maplist": {
                     "models": ["models.Maps"],
                     "default_connection": "tf2maps_bot"
                 },
-                "starboard": {
-                    "models": ["models.Starboard"],
-                    "default_connection": "starboard"
-                }
+                #"starboard": {
+                #    "models": ["models.Starboard"],
+                #    "default_connection": "starboard"
+                #}
             }
         }
     )
