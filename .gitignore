@@ -7,3 +7,7 @@ config.yml
 *__pycache__*
 *.pex
 *.sqlite
+demo.py
+img.py
+server.py
+test.txt

@@ -1,3 +1,5 @@
+#un implemented.
+
 import discord
 from discord.ext.commands import Cog, command, has_any_role
 from utils import load_config

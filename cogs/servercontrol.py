@@ -16,7 +16,6 @@ class server(Cog):
     #server command: start, stop, restart, update
     @command(help=config.cogs.servercontrol.server.help)
     @has_any_role(*config.cogs.servercontrol.server.role_names)
-    #@not_nobot_role
     async def server(self, ctx, server, command):
 
         servers = ["eu", "us", "eumvm", "usmvm"]

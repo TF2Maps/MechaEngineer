@@ -28,10 +28,7 @@ def main():
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
     bot.add_cog(ServeMe())
-    #my stuff
-    #bot.add_cog(rcon())
     bot.add_cog(server())
-    #bot.add_cog(twitter())
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())
