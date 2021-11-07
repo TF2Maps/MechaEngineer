@@ -22,7 +22,7 @@ def main():
 
     # Load Plugins
     bot.add_cog(Search())
-    #bot.add_cog(Tags())
+    bot.add_cog(Tags())
     bot.add_cog(MapList())
     bot.add_cog(Servers())
     bot.add_cog(VIP())
