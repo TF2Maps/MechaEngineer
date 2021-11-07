@@ -1,131 +1,31 @@
 <html>
 <head>
     <title>Test</title>
-    <link rel="stylesheet" href="https://necolas.github.io/normalize.css/8.0.1/normalize.css">
-    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
-    <style>
-        :root {
-            --main-bg-color: #4e443b;
-            --bg-main: #33302e;
-            --bg-dark: #252322;
-            --text-primary: #d0d0d0;
-            --border-thickness: 2px;
-
-            --font-primary: "TF2 Secondary";
-            --font-header: "Boogaloo";
-
-        }
-        body {
-            background-color: #4e443b;
-            font-family: var(--font-primary);
-        }
-
-        .el-card.box-card {
-            background-color:var(--bg-main);
-            border-color: var(--bg-dark);
-            border-width: var(--border-thickness);
-            color: var(--text-primary);
-        }
-        .el-card__header {
-            border-color: var(--bg-dark);
-            border-width: var(--border-thickness);
-            font-family: var(--font-header);
-            font-size: x-large;
-        }
-        .el-divider {
-            background-color: var(--bg-dark);
-            height: var(--border-thickness);
-        }
-
-
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
 </head>
 <body>
-    <div id="app" style="max-width:1080px; margin:0px auto">
-
-
-
-<el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
-    <el-menu-item index="1">Commands</el-menu-item>
-    <el-submenu index="2">
-        <template slot="title">TODO</template>
-        <el-menu-item index="2-1">item one</el-menu-item>
-        <el-menu-item index="2-2">item two</el-menu-item>
-        <el-menu-item index="2-3">item three</el-menu-item>
-    </el-submenu>
-    <el-menu-item index="4"><a href="https://tf2maps.net" target="_blank">TF2 Maps.net</a></el-menu-item>
-</el-menu>
-<br>
-
-<el-tabs :tab-position="tabPosition" style="height: 500px">
     {% for name, config in categories.items() %}
-
-        <el-tab-pane label="{{ name | capitalize }}">
-            {% for command_name, command_config in config.items() %}
-            <el-card class="box-card" shadow="hover">
-                <div slot="header">
-                    {{ command_name | capitalize }}
-                </div>
+        <h1>{{ name }}</h1>
+        <ul>
+        {% for command_name, command_config in config.items() %}
+            <li>
+                <h3 style="display:inline">{{ command_name }}</h3>
                 <div style="margin-left: 3em">
+                    <p><b>Required Role</b>: {{ command_config.role_names }}</p>
+                    <p><b>Aliases</b>: {{ command_config.aliases }}</p>
+
                     <p>
+                        <b>Help</b>:<br>
                         {% autoescape false %}
                         {{ command_config.help | replace("\n", "<br />") }}
                         {% endautoescape %}
                     </p>
-<<<<<<< HEAD
-                    <el-divider></el-divider>
-
-                    Roles:
-                    {% for role in command_config.role_names %}
-                    <el-tag size="mini" effect="dark">{{ role }}</el-tag>
-                    {% endfor %}
-                    <br><br>
-                    Aliases:
-                    {% for alias in command_config.aliases %}
-                    <el-tag size="mini" effect="dark">{{ alias }}</el-tag>
-                    {% endfor %}
-
-
-                </div>
-            </el-card>
-            <br>
-
-            {% endfor %}
-
-        </el-tab-pane>
-    {% endfor %}
-</el-tabs>
-
-    </div>
-
-    <script src="https://unpkg.com/vue/dist/vue.js"></script>
-    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-    <script>
-        new Vue({
-            el: '#app',
-            data: function () {
-                return {
-                    activeIndex: '1',
-                    activeIndex2: '1',
-                    tabPosition: 'left'
-                }
-
-            }
-        })
-
-        function handleSelect(key, keyPath) {
-            console.log(key, keyPath);
-        }
-
-    </script>
-=======
                 </div>
             </li>
             {% endfor %}
         </ul>
         <hr>
     {% endfor %}
->>>>>>> 0af49079da6c7edef51ab4e65fe47928bde3a227
 
 </body>
 </html>

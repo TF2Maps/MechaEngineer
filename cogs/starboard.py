@@ -46,11 +46,7 @@ class Starboard(Cog):
             .all()
             .annotate(emoji_count=Count("reaction_emoji"))
             .group_by("reaction_emoji")
-<<<<<<< HEAD
-#            .order_by("-emoji_count")
-=======
             .order_by("-emoji_count")
->>>>>>> 0af49079da6c7edef51ab4e65fe47928bde3a227
             .values_list("reaction_emoji", "emoji_count")
         )
 
