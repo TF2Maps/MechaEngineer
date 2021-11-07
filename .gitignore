@@ -1,0 +1,9 @@
+config.yaml
+config.yml
+*.pyc
+*.db
+.*
+*.egg-info/
+*__pycache__*
+*.pex
+*.sqlite
