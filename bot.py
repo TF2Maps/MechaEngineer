@@ -60,24 +60,24 @@ async def init_db():
     await Tortoise.init(
         {
             "connections": {
-                #"tags": config.databases.tags,
-                #"starboard": config.databases.starboard,
+                "tags": config.databases.tags,
+                "starboard": config.databases.starboard,
                 "tf2maps_bot": config.databases.tf2maps_bot,
                 "tf2maps_site": config.databases.tf2maps_site
             },
             "apps": {
-                #"tags": {
-                #    "models": ["models.Tag"],
-                #    "default_connection": "tags"
-                #},
+                "tags": {
+                    "models": ["models.Tag"],
+                    "default_connection": "tags"
+                },
                 "maplist": {
                     "models": ["models.Maps"],
                     "default_connection": "tf2maps_bot"
                 },
-                #"starboard": {
-                #    "models": ["models.Starboard"],
-                #    "default_connection": "starboard"
-                #}
+                "starboard": {
+                    "models": ["models.Starboard"],
+                    "default_connection": "starboard"
+                }
             }
         }
     )
