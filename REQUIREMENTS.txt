@@ -13,3 +13,8 @@ pydantic
 uvicorn
 jinja2
 imgkit
+databases
+
+asyncssh
+socket
+asyncio
