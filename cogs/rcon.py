@@ -6,6 +6,8 @@ from utils import load_config
 import a2s
 import re
 from rcon import Client
+from utils import load_config, cog_error_handler
+from utils.discord import not_nobot_role
 #https://pypi.org/project/rcon/
 
 
@@ -13,30 +15,13 @@ from rcon import Client
 global_config = load_config()
 config = global_config
 
-class rcon(Cog):
+class Rcon(Cog):
 
-    #test command
-    @command()
-    async def test(self, ctx):
-        await ctx.trigger_typing()
-        await ctx.send("test")
-    
-    #list all servers
-    @command()
-    @has_any_role('Staff', 'Server Mods', 'Senior Staff', 'Fub')
-    async def servers(self, ctx):
-        allservers = config.servers
+    cog_command_error = cog_error_handler
 
-        embed=discord.Embed()
-        embed.add_field(name="Availible Servers", value="eu, us, eumvm, usmvm")
-        embed.set_footer(text="TF2M RCON v1")
-
-        await ctx.send(embed=embed)
-
-    #rcon TODO
     #sm_say works but returns an error message in vsc because there is no return message to discord.
-    @command()
-    @has_any_role('Staff', 'Server Mods', 'Senior Staff', 'Fub')
+    @command(help=config.cogs.rcon.rcon.help)
+    @has_any_role(*config.cogs.servercontrol.server.role_names)
     async def rcon(self, ctx, server, *commands):
 
         #what servers can we rcon
@@ -45,107 +30,27 @@ class rcon(Cog):
         #only accept valid servers
         if server in servers:
 
-            #rcon to specific server
-            #eu
-            if server == "eu":
-                command = " ".join(commands)
-                response = await run_rcon(server, command)
+            command = " ".join(commands)
+            response = await run_rcon(server, command)
 
-                #for status
-                if command == "status":
-                    status_response = await get_status(response)
-                    await ctx.send(status_response)
-                else:
-                #for everything else
-                    if response == "":
-                        await ctx.send("Command sent.")
-                    else:
-                        await ctx.send("```\n" + response + "\n```")
-            #us
-            elif server == "us":
-                command = " ".join(commands)
-                response = await run_rcon(server, command)
-
-                #for status
-                if command == "status":
-
-                    status_response = await get_status(response)
-                    await ctx.send(status_response)
-
-                else:
-                #for everything else
-                    if response == "":
-                        await ctx.send("Command sent.")
-                    else:
-                        await ctx.send("```\n" + response + "\n```")
-            #eumvm
-            elif server == "eumvm":
-                command = " ".join(commands)
-                response = await run_rcon(server, command)
-
-                #for status
-                if command == "status":
-                    await ctx.send("```\n" + response.split('#', 1)[1] + "\n```")
-                else:
-                #for everything else
-                    if response == "":
-                        await ctx.send("Command sent.")
-                    else:
-                        await ctx.send("```\n" + response + "\n```")
-            #usmvm
-            elif server == "usmvm":
-                command = " ".join(commands)
-                response = await run_rcon(server, command)
-
-                #for status
-                if command == "status":
-                    await ctx.send("```\n" + response.split('#', 1)[1] + "\n```")
-                else:
-                #for everything else
-                    if response == "":
-                        await ctx.send("Command sent.")
-                    else:
-                        await ctx.send("```\n" + response + "\n```")
-            #rare edge case
+            #for status, this is important!!!!
+            if command == "status":
+                status_response = await get_status(response)
+                await ctx.send(status_response)
             else:
-                await ctx.send("How did it reach this part?")
+            #for everything else
+                if response == "":
+                    await ctx.send("Command sent.")
+                else:
+                    await ctx.send("```\n" + response + "\n```")
+            
         #wrong server
         else:
-            await ctx.send("Invalid server. See `?servers`.")
-
-    #status test command TODO
-    @command()
-    @has_any_role('Staff', 'Server Mods', 'Senior Staff', 'Fub')
-    async def status(self, ctx, server):
-        await ctx.trigger_typing()
-        if server == "us":
-            await ctx.send("us imp")
-        elif server == "us-mvm":
-            await ctx.send("us mvm")
-        elif server == "eu":
-            await ctx.send("eu imp")
-            
-            #server info
-            euserver = server_info(config.rcon.euip, config.rcon.imp)
-            await ctx.send(euserver)
-
-            #player info???
-            euserverplayers = server_players(config.rcon.euip, config.rcon.imp)
-            await ctx.send(euserverplayers)
-
-            #player info???
-            #eurules = get_nextmap('eu.tf2maps.net', 27015)
-            #await ctx.send(eurules)
-            #print(eurules)
-
-        elif server == "eu-mvm":
-            await ctx.send("eu mvm")
-        else:
-            await ctx.send("no server found")
+            await ctx.send("Invalid server. See `!server`.")
 
     #nextmap
-    @command()
-    @has_any_role('Staff', 'Server Mods', 'Senior Staff', 'Fub')
+    @command(help=config.cogs.rcon.nextmap.help)
+    @has_any_role(*config.cogs.rcon.nextmap.role_names)
     async def nextmap(self, ctx, server):
         await ctx.trigger_typing()
         if server == "us":
@@ -170,14 +75,6 @@ class rcon(Cog):
         
         else:
             await ctx.send("no server found")
-
-#get server info via a2s
-def server_info(host, port):
-    return a2s.info((host, port))
-
-#get players via a2s
-def server_players(host, port):
-    return a2s.players((host, port))
 
 #get the next fucking map
 def get_nextmap(host, port):
@@ -240,7 +137,6 @@ async def get_status(input):
 
     return status
 
-#ned to figure out how to do this to make less code
 async def run_rcon(server, command):
 
     if server == "eu":

@@ -28,7 +28,8 @@ def main():
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
     bot.add_cog(ServeMe())
-    bot.add_cog(server())
+    bot.add_cog(Server())
+    bot.add_cog(Rcon())
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())

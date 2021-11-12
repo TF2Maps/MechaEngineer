@@ -1,9 +1,8 @@
-#un implemented
-
 from asyncio.windows_events import NULL
 import discord
 from discord import client
-from discord.ext.commands import Cog, command, has_any_role
+from discord import channel
+from discord.ext.commands import Cog, bot, command, has_any_role
 from discord.ext import commands
 from utils import load_config
 
@@ -11,15 +10,18 @@ global_config = load_config()
 config = global_config
 
 # TWITTER KEYS (...would go here)
-consumer_key = None
-consumer_secret = None
-access_token = None
-access_token_secret = None
+consumer_key = config.twitter.consumer_key
+consumer_secret = config.twitter.consumer_secret
+access_token = config.twitter.access_token
+access_token_secret = config.twitter.access_token_secret
 
 #colors
 tf2_color = 0xB98A2E
 art_color = 0xde1f1f
 other_color = 0x868686
+
+embed = discord.Embed()
+releasechannel = 843684540135505961
 
 class twitter(Cog):
 
@@ -95,6 +97,11 @@ class twitter(Cog):
                         step = 1
                 #art
                 elif(link.content == 'art' or link.content == 'Art'):
+                    
+                    await ctx.author.send("Coming soon.")
+                    step = 0
+
+                    """
                     submissioncategory = 'Art'
                     msg = await ctx.author.send('**Great! Now send me link to the art or directly upload it to discord in this channel.**')
                     link = await ctx.bot.wait_for('message', check=check)
@@ -104,8 +111,15 @@ class twitter(Cog):
                     print (link.content)
                     submissionlink = link.content
                     step = 2
+                    """
+
                 #other
                 elif(link.content == 'other' or link.content == 'other'):
+
+                    await ctx.author.send("Coming soon.")
+                    step = 0
+
+                    """
                     submissioncategory = 'Other'
                     msg = await ctx.author.send('**Great! Now send me a link to what you are submitting.**')
                     link = await ctx.bot.wait_for('message', check=check)
@@ -114,23 +128,21 @@ class twitter(Cog):
                         break 
                     print(link.content)
                     submissionlink = link.content
-                    step = 2             
+                    step = 2  
+                    """           
                 else:
                     msg = await ctx.author.send('**Error. Please start the submission over by typing !release in #bot.**')
                     break
             
             if(step == 2):
                 if(submissioncategory == 'Map'):
-                    pass
-                elif(submissioncategory == 'Item'):
-                    pass
-                elif(submissioncategory == 'Art'):
-
-                    #todo
+                    
                     #direct upload image to discord does not work for whatever reason
                     msg = await ctx.author.send('**Does this look alright? Y/N**')
                     embed = discord.Embed()
                     embed.set_author(name=submissioncategory)
+                    embed.add_field(name='Author: ', value=ctx.author, inline=False)
+                    embed.add_field(name='Link: ', value=submissionlink, inline=False)
                     embed.set_image(url=submissionlink)
                     embed.set_footer(text=global_config.bot_footer)
                     await ctx.author.send(embed=embed)
@@ -138,16 +150,42 @@ class twitter(Cog):
                     link = await ctx.bot.wait_for('message', check=check)
                     if(link.content == 'Y' or link.content == 'y'):
                         step = 3
-                        break
+                    else:
+                        await ctx.author.send('**Let us start over then.**')
+                        step = 0
+                elif(submissioncategory == 'Item'):
+                    pass
+                elif(submissioncategory == 'Art'):
+
+                    #come back to this shit.
+
+                    #todo
+                    #direct upload image to discord does not work for whatever reason
+                    msg = await ctx.author.send('**Does this look alright? Y/N**')
+                    embed = discord.Embed()
+                    embed.set_author(name=submissioncategory)
+                    embed.add_field(name='Author: ', value=ctx.author, inline=False)
+                    embed.add_field(name='Link: ', value=submissionlink, inline=False)
+                    embed.set_image(url=submissionlink)
+                    embed.set_footer(text=global_config.bot_footer)
+                    await ctx.author.send(embed=embed)
+
+                    link = await ctx.bot.wait_for('message', check=check)
+                    if(link.content == 'Y' or link.content == 'y'):
+                        step = 3
                     else:
                         await ctx.author.send('**Let us start over then.**')
                         step = 0
 
                 elif(submissioncategory == 'Other'):
+                   
+                    #come back to this shit.
+
                     #todo
                     msg = await ctx.author.send('**Does this look alright? Y/N**')
-                    embed = discord.Embed()
+                    
                     embed.set_author(name=submissioncategory)
+                    embed.add_field(name='Author: ', value=ctx.author, inline=False)
                     embed.add_field(name='Content', value=submissionlink, inline=True)
                     embed.set_footer(text=global_config.bot_footer)
                     await ctx.author.send(embed=embed)
@@ -155,7 +193,6 @@ class twitter(Cog):
                     link = await ctx.bot.wait_for('message', check=check)
                     if(link.content == 'Y' or link.content == 'y'):
                         step = 3
-                        break
                     else:
                         await ctx.author.send('**Let us start over then.**')
                         step = 0
@@ -166,8 +203,20 @@ class twitter(Cog):
                     pass
                     break
 
+            if (step == 3):
+                break
+
         if(canceled == True):
             msg = await ctx.author.send('**Submission canceled. To resubmit type !release in #bot.**')
+        else:
+            #testing embed sending to release channel
+            print("step 3")
+
+            #this sends to specific channel defined in config.yaml
+            ctx.channel.id = config.bot_release
+            print(ctx.channel.id)
+            print(ctx.author)
+            await ctx.channel.send(embed=embed)
 
 def submission_confirmation():
     pass

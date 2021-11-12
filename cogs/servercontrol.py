@@ -9,7 +9,7 @@ import asyncssh
 global_config = load_config()
 config = global_config
 
-class server(Cog):
+class Server(Cog):
 
     cog_command_error = cog_error_handler
 
