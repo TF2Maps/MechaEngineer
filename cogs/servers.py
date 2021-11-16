@@ -10,7 +10,7 @@ import valve.source.a2s
 from utils import load_config, get_srcds_server_info, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
 from utils.discord import not_nobot_role
-
+ 
 global_config = load_config()
 config = global_config.cogs.servers
 
