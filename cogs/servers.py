@@ -58,7 +58,7 @@ class Servers(Cog):
                 embed = await self.get_server_embed(eu_server, "eu.tf2maps.net")
                 await ctx.send(embed=embed)
                 alive = True
-
+ 
             if not alive:
                 await ctx.send(f"{warning} No map tests are currently happening right now. Check back later")
         except socket.timeout:
