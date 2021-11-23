@@ -36,7 +36,11 @@ The current TF2 Maps Discord Bot
         
 `shutdown`
         - Shutdown a ad-hoc server.
-        
+
+### Servercontrol:
+`server`
+        - !server <server> <command>. Control the gameservers.
+
 ### Servers:
 `active`
         - Check for active players on both EU and US server.
