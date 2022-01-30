@@ -5,7 +5,7 @@ pass
 import discord
 from discord.ext.commands import Cog, command, has_any_role, group
 from tabulate import tabulate
-from tortoise.query_utils import Q
+from tortoise.expressions import Q
 
 # Local Imports
 from models.Tag import Tag
