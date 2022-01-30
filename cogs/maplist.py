@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from discord.ext.commands import Cog, command, has_any_role
 import discord
 import httpx
-from tortoise.query_utils import Q
+from tortoise.expressions import Q
 
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
