@@ -180,9 +180,16 @@ class MapList(Cog):
         filepath = os.path.join(tempfile.mkdtemp(), filename)
         map_name = re.sub("\.bsp$", "", filename)
         
-        # Must be a BSP
-        if not re.search("\.bsp$", filename):
-            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
+        path = global_config.sftp.redirect_tf2maps_net.path
+        is_duplicate = os.path.exists(os.path.join(path, f"{map_name}.bsp")) or s.path.exists(os.path.join(path, f"{map_name}.bsp.bz2"))
+        if is_duplicate
+	        await message.edit(content=f"{error} You MUST rename your VMF before compiling & uploading a new version. For example, koth_mymap_a1 -> koth_mymap_a2.")
+            return
+
+        
+        # Must be a BSP or BZ2
+        if not (re.search("\.bsp$", filename) or re.search("\.bsp.bz2$", filename)):
+            await message.edit(content=f"{warning} `{map_name}` is not a BSP or BZip2!")
             return
 
         # Check for dupe
