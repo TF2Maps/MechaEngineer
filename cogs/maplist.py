@@ -199,7 +199,7 @@ class MapList(Cog):
 
         # Ensure map has the same MD5 sum as an existing one
         if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
-            if await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
+            if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
                 await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
                 return
 

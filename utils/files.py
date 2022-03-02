@@ -45,8 +45,8 @@ async def check_redirect_hash(file, s3_config):
     async with session.client('s3', **s3_config) as s3:
         remote_hash = await s3.head_object(Bucket="tf2maps-maps", Key=f"maps/{os.path.basename(file)}")
         remote_hash = remote_hash.get('ETag', None).replace('"', '')
-
         local_hash = hashlib.md5(open(file, "rb").read()).hexdigest()
+
         return local_hash == remote_hash
 
 
