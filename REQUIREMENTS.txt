@@ -1,5 +1,5 @@
 py-cord
-boto3
+aioboto3
 httpx
 beautifulsoup4
 python-a2s
