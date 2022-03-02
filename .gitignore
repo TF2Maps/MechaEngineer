@@ -6,4 +6,4 @@ config.yml
 *.egg-info/
 *__pycache__*
 *.pex
-*.sqlite
+*.sqlite*

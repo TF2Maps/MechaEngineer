@@ -23,19 +23,19 @@ async def search_downloads(resource_name, discord_user_id=None):
 
     results = []
     if discord_user_id:
-        query = "SELECT user_id FROM xf_user_field_value WHERE field_id = :field_id AND field_value = :field_value"
-        values = {"field_id": "discord_user_id", "field_value": discord_user_id}
+        query = "SELECT user_id FROM xf_user_connected_account WHERE provider = :field_id AND provider_key = :field_value"
+        values = {"field_id": "th_cap_discord", "field_value": discord_user_id}
         result = await database.fetch_one(query=query, values=values)
         if not result:
             raise ForumUserNotFoundException
 
         forum_user_id = result[0]
-        query = 'SELECT title,resource_id from xf_resource where user_id=:field_user_id AND title LIKE :field_title'
+        query = 'SELECT title,resource_id from xf_rm_resource where user_id=:field_user_id AND title LIKE :field_title'
         values = {"field_user_id": forum_user_id, "field_title": f"%{resource_name}%"}
         results = await database.fetch_all(query=query, values=values)
 
     else:
-        query = 'SELECT title,resource_id from xf_resource where title LIKE :field_title ORDER BY resource_id DESC'
+        query = 'SELECT title,resource_id from xf_rm_resource where title LIKE :field_title ORDER BY resource_id DESC'
         values = {"field_title": f"%{resource_name}%"}
         results = await database.fetch_all(query=query, values=values)
 

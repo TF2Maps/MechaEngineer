@@ -11,7 +11,6 @@ from dotted_dict import DottedDict
 
 def load_config():
     with open("config.yaml") as file:
-        config = yaml.load(file)
+        config = yaml.load(file, Loader=yaml.Loader)
     return DottedDict(config)
 
-# TODO config schema verifier?
