@@ -1,6 +1,7 @@
 # Std Lib Imports
 import asyncio
 import re
+import aioboto3
 import tempfile
 import os.path
 from urllib.parse import urlparse, quote
@@ -38,10 +39,10 @@ class MapList(Cog):
     async def uploadcheck(self, ctx, map_name):
         message = await ctx.reply(f"{loading} Checking...")
 
-        path = global_config.sftp.redirect_tf2maps_net.path
-        redirect = os.path.exists(os.path.join(path, f"{map_name}.bsp"))
-        if not redirect:
-            redirect = os.path.exists(os.path.join(path, f"{map_name}.bsp.bz2"))
+        session = aioboto3.session.Session()        
+        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
+            obj = await s3.list_objects(Bucket="tf2maps-maps", Prefix=f"maps/{map_name}.bsp", MaxKeys=2)
+            redirect = bool(obj.get('Contents', []))
 
         us, eu = await asyncio.gather(
             remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
@@ -198,15 +199,20 @@ class MapList(Cog):
         # Upload to servers
         await message.edit(content=f"{loading} Uploading `{filename}` to game servers...")
         await asyncio.gather(
-            upload_file(filepath, **global_config.sftp.us_tf2maps_net),
-            upload_file(filepath, **global_config.sftp.eu_tf2maps_net),
+            upload_file(filepath, **global_config.sftp.us_tf2maps_net, force=True),
+            upload_file(filepath, **global_config.sftp.eu_tf2maps_net, force=True),
         )
 
         # Compress and put on redirect
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
-        redirect_path = os.path.join(global_config.sftp.redirect_tf2maps_net.path, os.path.basename(compressed_file))
-        shutil.copyfile(compressed_file, redirect_path)
+
+        await message.edit(content=f"{loading} Adding `{filename}` to redirect...")
+
+        session = aioboto3.session.Session()
+        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
+            with open(compressed_file, "rb") as file:
+                obj = await s3.put_object(ACL="public-read", Body=file, Bucket="tf2maps-maps", Key=f"maps/{os.path.basename(compressed_file)}")
 
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
@@ -242,7 +248,7 @@ class MapList(Cog):
                 async with httpx.AsyncClient() as client:
                     response = await client.get(link)
                 soup = BeautifulSoup(response.text, 'html.parser')
-                href = soup.select("label.downloadButton > a.inner")[0].get("href")
+                href = soup.select(".button--icon--download")[0].get("href")
 
                 matched_link = f"https://tf2maps.net/{href}"
 
@@ -251,7 +257,7 @@ class MapList(Cog):
                 matched_link = link
 
         async with httpx.AsyncClient() as client:
-            response = await client.head(link, allow_redirects=True)
+            response = await client.head(link, follow_redirects=True)
             redir = urlparse(str(response.url))
 
             # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
