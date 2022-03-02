@@ -33,21 +33,30 @@ config = global_config.cogs.maplist
 class MapList(Cog):
     cog_command_error = cog_error_handler
 
+    async def upload_status(self, ctx, map_name):
+        session = aioboto3.session.Session()        
+        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
+            obj = await s3.list_objects(Bucket="tf2maps-maps", Prefix=f"maps/{map_name}.bsp", MaxKeys=2)
+            redirect = bool(obj.get('Contents', []))
+	    if not redirect
+	        obj = await s3.list_objects(Bucket="tf2maps-maps", Prefix=f"maps/{map_name}.bsp", MaxKeys=2)
+                redirect = bool(obj.get('Contents', []))
+
+        return await asyncio.gather(
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net) or remote_file_exists(f"{map_name}.bz2", **global_config.sftp.us_tf2maps_net),
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net) or remote_file_exists(f"{map_name}.bz2", **global_config.sftp.eu_tf2maps_net),
+            redirect
+        )
+
+	
+
     @command()
     @has_any_role(*config.add.role_names)
     @not_nobot_role()
     async def uploadcheck(self, ctx, map_name):
         message = await ctx.reply(f"{loading} Checking...")
 
-        session = aioboto3.session.Session()        
-        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
-            obj = await s3.list_objects(Bucket="tf2maps-maps", Prefix=f"maps/{map_name}.bsp", MaxKeys=2)
-            redirect = bool(obj.get('Contents', []))
-
-        us, eu = await asyncio.gather(
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net)
-        )
+        us, eu, redirect = self.upload_status(self, ctx, map_name)
 
         output = ""
         if us:
@@ -180,17 +189,16 @@ class MapList(Cog):
         filename = await get_download_filename(link)
         filepath = os.path.join(tempfile.mkdtemp(), filename)
         map_name = re.sub("\.bsp$", "", filename)
-        
-        path = global_config.sftp.redirect_tf2maps_net.path
-        is_duplicate = os.path.exists(os.path.join(path, f"{map_name}.bsp")) or s.path.exists(os.path.join(path, f"{map_name}.bsp.bz2"))
-        if is_duplicate
-	        await message.edit(content=f"{error} You MUST rename your VMF before compiling & uploading a new version. For example, koth_mymap_a1 -> koth_mymap_a2.")
-            return
-
-        
+                
         # Must be a BSP or BZ2
         if not (re.search("\.bsp$", filename) or re.search("\.bsp.bz2$", filename)):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP or BZip2!")
+            return
+
+	# Check for reuploads
+	us, eu, redir = self.upload_status(self, ctx, map_name)
+	if (us or eu or redir)
+	    await message.edit(content=f"{warning} `{map_name}` has already been uploaded! You must change the version string of your map every time you intend to share it, for example, koth_mymap_a1 -> koth_mymap_a2.")
             return
 
         # Check for dupe
