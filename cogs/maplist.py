@@ -40,10 +40,11 @@ class MapList(Cog):
     async def uploadcheck(self, ctx, map_name):
         message = await ctx.reply(f"{loading} Checking...")
 
+        #Checking for bsps in the redir in case any are uploaded prior / manually and not compressed.
         us, eu, redirect = await asyncio.gather(
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
-            redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net) or remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.us_tf2maps_net),
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net) or remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.eu_tf2maps_net),
+            redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']) or redirect_file_exists(f"{map_name}.bsp", global_config['vultr_s3_client']),
         )
 
         output = ""
@@ -176,12 +177,19 @@ class MapList(Cog):
         # Get map info
         filename = await get_download_filename(link)
         filepath = os.path.join(tempfile.mkdtemp(), filename)
-        map_name = re.sub("\.bsp$", "", filename)
         
-        # Must be a BSP
+        is_bzip2 = False
+        # Must be a BSP or BZip2
+        
+        map_name = re.sub("\.bsp$", "", filename)
         if not re.search("\.bsp$", filename):
-            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
-            return
+            is_bzip2 = True
+            if not re.search("\.bsp.bz2$", filename):
+                await message.edit(content=f"{warning} `{filename}` is not a BSP or BZip2!")
+                return
+            map_name = re.sub("\.bsp.bz2$", "", filename)
+            # Already is compressed.
+            compressed_file = filepath
 
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
@@ -193,14 +201,16 @@ class MapList(Cog):
         await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
         await download_file(link, filepath)
         
-        # Compress file for redirect
-        await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
-        compressed_file = compress_file(filepath)
+        
+        if not is_bzip2:
+            # Compress file for redirect
+            await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
+            compressed_file = compress_file(filepath)
 
         # Ensure map has the same MD5 sum as an existing one
         if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
             if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
-                await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                await message.edit(content=f"{warning} `{map_name}` has already been uploaded! You must rename your VMF each time you want to compile & share changes. For example, koth_mymap_a1 -> koth_mymap_a2.")
                 return
 
         # Upload to servers
