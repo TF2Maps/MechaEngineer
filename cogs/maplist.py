@@ -8,6 +8,7 @@ from urllib.parse import urlparse, quote
 from datetime import datetime, timedelta
 import shutil
 import bz2
+import hashlib
 
 # 3rd Party Imports
 import asyncssh
@@ -20,7 +21,7 @@ from tortoise.expressions import Q
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
-from utils.files import compress_file, download_file, get_download_filename, upload_file, remote_file_exists
+from utils.files import compress_file, download_file, get_download_filename, upload_to_gameserver, upload_to_redirect, remote_file_exists, redirect_file_exists, check_redirect_hash
 from utils.search import search_downloads, ForumUserNotFoundException
 from utils.discord import not_nobot_role
 
@@ -39,14 +40,10 @@ class MapList(Cog):
     async def uploadcheck(self, ctx, map_name):
         message = await ctx.reply(f"{loading} Checking...")
 
-        session = aioboto3.session.Session()        
-        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
-            obj = await s3.list_objects(Bucket="tf2maps-maps", Prefix=f"maps/{map_name}.bsp", MaxKeys=2)
-            redirect = bool(obj.get('Contents', []))
-
-        us, eu = await asyncio.gather(
+        us, eu, redirect = await asyncio.gather(
             remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net)
+            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
+            redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
         )
 
         output = ""
@@ -195,24 +192,24 @@ class MapList(Cog):
         # Download the map
         await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
         await download_file(link, filepath)
-
-        # Upload to servers
-        await message.edit(content=f"{loading} Uploading `{filename}` to game servers...")
-        await asyncio.gather(
-            upload_file(filepath, **global_config.sftp.us_tf2maps_net, force=True),
-            upload_file(filepath, **global_config.sftp.eu_tf2maps_net, force=True),
-        )
-
-        # Compress and put on redirect
+        
+        # Compress file for redirect
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
 
-        await message.edit(content=f"{loading} Adding `{filename}` to redirect...")
+        # Ensure map has the same MD5 sum as an existing one
+        if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
+            if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
+                await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                return
 
-        session = aioboto3.session.Session()
-        async with session.client('s3', **global_config['vultr_s3_client']) as s3:
-            with open(compressed_file, "rb") as file:
-                obj = await s3.put_object(ACL="public-read", Body=file, Bucket="tf2maps-maps", Key=f"maps/{os.path.basename(compressed_file)}")
+        # Upload to servers
+        await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
+        await asyncio.gather(
+            upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
+            upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net),
+            upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+        )
 
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
