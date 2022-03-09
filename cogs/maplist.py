@@ -82,9 +82,13 @@ class MapList(Cog):
         if len(maps) == 0:
             await ctx.send(f"{error} You don't have a map with that name on the list!")
         else:
+            if not link: 
+                # If just the name is specified, this allows map updates to be applied without needing to type the name twice
+                link = map_name
+            
             if link == "-":
                 if not notes:
-                    await ctx.reply(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                    await ctx.reply(f"{error} Add a link or notes. Otherwise, there is nothing to update.")
                 maps[0].notes = notes
                 await maps[0].save()
                 await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
