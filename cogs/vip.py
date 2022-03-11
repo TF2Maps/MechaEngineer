@@ -25,8 +25,8 @@ class VIP(Cog):
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
 
-        query = "SELECT user_id FROM xf_user_field_value WHERE field_id = :field_id AND field_value = :field_value"
-        values = {"field_id": "discord_user_id", "field_value": ctx.author.id}
+        query = "SELECT user_id FROM xf_user_connect_account WHERE provider_key = :field_value"
+        values = {"field_value": ctx.author.id}
         result = await database.fetch_one(query=query, values=values)
 
         if not result:
