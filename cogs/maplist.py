@@ -1,4 +1,3 @@
-# Std Lib Imports
 import asyncio
 import re
 import aioboto3
