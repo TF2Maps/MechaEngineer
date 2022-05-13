@@ -8,6 +8,14 @@ from bs4 import BeautifulSoup
 import httpx
 import databases
 
+#Slash Command Imports
+from discord.commands import (
+    slash_command,
+    Option,
+    message_command,
+    user_command
+)
+
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.search import search_with_bing, search_downloads
@@ -21,23 +29,19 @@ config = global_config.cogs.search
 class Search(Cog):
     cog_command_error = cog_error_handler
 
-    @command(aliases=config.vdc.aliases, help=config.vdc.help)
-    @has_any_role(*config.vdc.role_names)
-    @not_nobot_role()
-    async def vdc(self, ctx, *, term):
+    @discord.slash_command(description="Search the VDC.")
+    async def vdc(self, ctx, *, term: discord.Option(str)):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
         links = await search_with_bing(site, term)
         embed = self.get_search_embed(links[:10], term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @command(aliases=config.tf2m.aliases, help=config.tf2m.help)
-    @has_any_role(*config.tf2m.role_names)
-    @not_nobot_role()
-    async def tf2m(self, ctx, *, term):
+    @discord.slash_command(description="Search the TF2maps.net forums.")
+    async def tf2m(self, ctx, *, term: discord.Option(str)):
         await ctx.trigger_typing()
         site = "tf2maps.net"
         links = await search_with_bing(
@@ -51,21 +55,19 @@ class Search(Cog):
         )
         embed = self.get_search_embed(links[:10], term, "TF2 Maps", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @command(aliases=config.dl.aliases, help=config.dl.help)
-    @has_any_role(*config.dl.role_names)
-    @not_nobot_role()
-    async def dl(self, ctx, resource_name):
+    @discord.slash_command(description="Search the TF2maps.net downloads.")
+    async def dl(self, ctx, resource_name: discord.Option(str)):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)
         embed = self.get_search_embed(links[:10], resource_name, "TF2 Maps Downloads", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
     @staticmethod
     def get_search_embed(links, term, title, icon, remove_prefix=""):
