@@ -22,9 +22,7 @@ from utils.discord import not_nobot_role
 global_config = load_config()
 config = global_config.cogs.serveme
 
-#===============================
-#not converted to slash commands
-#===============================
+
 class ServeMe(Cog):
     cog_command_error = cog_error_handler
 

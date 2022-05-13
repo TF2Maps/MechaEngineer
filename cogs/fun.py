@@ -1,6 +1,4 @@
-#===============================
-#not converted to slash commands
-#===============================
+
 class Fun(commands.Cog):
     cog_command_error = cog_error_handler
 

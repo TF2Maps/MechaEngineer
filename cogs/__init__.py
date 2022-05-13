@@ -7,4 +7,3 @@ from .serveme import ServeMe
 from .misc import Misc
 from .starboard import Starboard
 from .modmail import ModMail
-from .slashtest import slashtest
