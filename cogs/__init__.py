@@ -8,3 +8,4 @@ from .misc import Misc
 from .starboard import Starboard
 from .modmail import ModMail
 from .reporting import Reporting
+from .verification import Verification
