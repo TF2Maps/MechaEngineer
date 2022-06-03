@@ -17,7 +17,9 @@ from utils.emojis import success, warning, error, info, loading
 global_config = load_config()
 config = global_config.cogs.starboard
 
-
+#===============================
+#not converted to slash commands
+#===============================
 class Starboard(Cog):
     cog_command_error = cog_error_handler
 
