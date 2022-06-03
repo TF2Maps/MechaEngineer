@@ -15,13 +15,19 @@ from utils import load_config, EmbedHelpCommand, setup_logger
 config = load_config()
 setup_logger(config.log_level)
 
+#stuff for intents
+intents = discord.Intents.default()
+intents.members = True
+intents.guilds = True
+
 def main():
-    bot = commands.Bot(command_prefix=config.bot_prefix)
+    bot = commands.Bot(command_prefix=config.bot_prefix, intents=intents)
 
     bot.help_command = EmbedHelpCommand()
 
     # Load Plugins
     bot.add_cog(Misc(bot))
+    bot.add_cog(EventLogger(bot))
     bot.add_cog(Reporting(bot))
     bot.add_cog(Verification(bot))
     bot.add_cog(Search())

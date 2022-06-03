@@ -14,6 +14,11 @@ from discord.commands import (
     user_command
 )
 
+#Oauth2 imports
+#import os
+#from flask import Flask, g, session, redirect, request, url_for, jsonify
+#from requests_oauthlib import OAuth2Session
+
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
@@ -55,7 +60,6 @@ class Verification(Cog):
 
             count = 0
             while count < db_hits:
-
                 embed.add_field(name=f"Record {count}", value=f"DiscordID: {they_are_verified[count].verified_uid}, Username: {they_are_verified[count].verified_username}, Steam Link: {they_are_verified[count].verified_steam_link}, SteamID64: {they_are_verified[count].verified_steam_id64}, Time: {they_are_verified[count].time_verified}", inline=False)
 
                 count = count + 1

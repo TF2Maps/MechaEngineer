@@ -38,7 +38,7 @@ class Misc(commands.Cog):
         elif month == "December":
             game_name = "Santa Fortress 2"
 
-        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | !help"))
+        await self.bot.change_presence(activity=discord.Game(name=f"{game_name}"))
 
     @command(help=config.code.help)
     @has_any_role(*config.code.role_names)
@@ -65,4 +65,4 @@ class Misc(commands.Cog):
 
     @discord.slash_command(description="Sends the bot's latency.")
     async def ping(self, ctx):
-        await ctx.respond(f"Pong! Latency is {bot.latency}")
+        await ctx.respond(f"Pong!")
