@@ -125,12 +125,22 @@ class MapList(Cog):
         live_maps = [] # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
-        map_names = ""
+        map_names = []
+        current_field_value = ""
         for item in maps:
             if item.map in [i.map for i in live_maps]:
                 continue
             else:
-                map_names += f"• {item.map}\n"
+                name = f"• {item.map}\n"
+                # If the value of the current field is going to go over 1000 characters, then split it into another field
+                # The actual limit is 1024, but better safe than sorry
+                if len(current_field_value + name) > 1000:
+                    map_names.append(current_field_value)
+                    current_field_value = ""
+                current_field_value += name
+
+        # Add the remaining map names to a last field
+        map_names.append(current_field_value)
 
         embed = discord.Embed(description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
         embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
@@ -139,7 +149,10 @@ class MapList(Cog):
             live_map_names = "\n".join([i.map for i in live_maps])
             embed.add_field(name="Now Playing", value=live_map_names, inline=False)
 
-        embed.add_field(name="Map Queue", value=map_names, inline=False)
+        # Add all the fields generated with the map names
+        for val in map_names:
+            embed.add_field(name="Map Queue", value=val, inline=False)
+
         embed.set_footer(text=global_config.bot_footer)
 
         await ctx.send(embed=embed)
@@ -176,7 +189,7 @@ class MapList(Cog):
         filename = await get_download_filename(link)
         filepath = os.path.join(tempfile.mkdtemp(), filename)
         map_name = re.sub("\.bsp$", "", filename)
-        
+
         # Must be a BSP
         if not re.search("\.bsp$", filename):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
@@ -191,7 +204,7 @@ class MapList(Cog):
         # Download the map
         await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
         await download_file(link, filepath)
-        
+
         # Compress file for redirect
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
