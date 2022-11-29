@@ -29,7 +29,7 @@ config = global_config.cogs.search
 class Search(Cog):
     cog_command_error = cog_error_handler
 
-    @discord.slash_command(description="Search the VDC.")
+    @discord.slash_command(description="Search the VDC.", guild_ids=[global_config.guild_id])
     async def vdc(self, ctx, *, term: discord.Option(str)):
         await ctx.trigger_typing()
         site = "developer.valvesoftware.com/wiki"
@@ -40,7 +40,7 @@ class Search(Cog):
         except discord.errors.HTTPException:
             await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @discord.slash_command(description="Search the TF2maps.net forums.")
+    @discord.slash_command(description="Search the TF2maps.net forums.", guild_ids=[global_config.guild_id])
     async def tf2m(self, ctx, *, term: discord.Option(str)):
         await ctx.trigger_typing()
         site = "tf2maps.net"
@@ -59,7 +59,7 @@ class Search(Cog):
         except discord.errors.HTTPException:
             await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @discord.slash_command(description="Search the TF2maps.net downloads.")
+    @discord.slash_command(description="Search the TF2maps.net downloads.", guild_ids=[global_config.guild_id])
     async def dl(self, ctx, resource_name: discord.Option(str)):
         site = "tf2maps.net"
         links = await search_downloads(resource_name)

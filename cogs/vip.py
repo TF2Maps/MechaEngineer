@@ -18,7 +18,7 @@ config = global_config.cogs.vip
 class VIP(Cog):
     cog_command_error = cog_error_handler
 
-    @discord.slash_command(description="Upgrade to VIP status.")
+    @discord.slash_command(description="Upgrade to VIP status.", guild_ids=[global_config.guild_id])
     async def upgrade(self, ctx):
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()

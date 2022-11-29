@@ -27,9 +27,6 @@ def main():
 
     # Load Plugins
     bot.add_cog(Misc(bot))
-    bot.add_cog(EventLogger(bot))
-    bot.add_cog(Reporting(bot))
-    bot.add_cog(Verification(bot))
     bot.add_cog(Search())
     bot.add_cog(Tags())
     bot.add_cog(MapList())

@@ -18,7 +18,7 @@ config = global_config.cogs.servers
 class Servers(Cog):
     cog_command_error = cog_error_handler
 
-    @discord.slash_command(description="See the status of the US server.")
+    @discord.slash_command(description="See the status of the US server.", guild_ids=[global_config.guild_id])
     async def usserver(self, ctx):
         try:
             server = get_srcds_server_info("us.tf2maps.net")
@@ -27,7 +27,7 @@ class Servers(Cog):
         except socket.timeout:
             await ctx.respond('US server is offline. Try again later.')
 
-    @discord.slash_command(description="See the status of the EU server.")
+    @discord.slash_command(description="See the status of the EU server.", guild_ids=[global_config.guild_id])
     async def euserver(self, ctx):
         try:
             server = get_srcds_server_info("eu.tf2maps.net")
@@ -36,7 +36,7 @@ class Servers(Cog):
         except socket.timeout:
             await ctx.respond('EU Server is offline. Try again later.')
 
-    @discord.slash_command(description="See the status of whichever server is active.")
+    @discord.slash_command(description="See the status of whichever server is active.", guild_ids=[global_config.guild_id])
     async def active(self, ctx):
         alive = False
  

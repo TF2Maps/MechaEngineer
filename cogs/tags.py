@@ -40,9 +40,9 @@ class Tags(Cog):
         if tag:
             await message.channel.send(tag.value)
 
-    tag = SlashCommandGroup("tag", "Commands for our tag system.")
+    tag = SlashCommandGroup("tag", "Commands for our tag system.", guild_ids=[global_config.guild_id])
 
-    @tag.command(description="Create a tag.")
+    @tag.command(description="Create a tag.", guild_ids=[global_config.guild_id])
     async def create(self, ctx, key, *, value):
         tag, created = await Tag.get_or_create(
             key=key.lower(),
@@ -55,7 +55,7 @@ class Tags(Cog):
         else:
             await ctx.respond(f"{error} Tag already exists")
 
-    @tag.command(description="Remove a tag.")
+    @tag.command(description="Remove a tag.", guild_ids=[global_config.guild_id])
     async def remove(self, ctx, key):
         tag = await Tag.get_or_none(key=key)
 
@@ -65,7 +65,7 @@ class Tags(Cog):
         else:
             await ctx.respond(f"{error} Tag `{key}` not found.")
 
-    @tag.command(description="Create a range of tags given a string.")
+    @tag.command(description="Create a range of tags given a string.", guild_ids=[global_config.guild_id])
     async def list(self, ctx, *, search):
         tags = await Tag.filter(
             Q(key__icontains=search) | Q(author__icontains=search)
@@ -76,9 +76,14 @@ class Tags(Cog):
             rows.append([tag.key, tag.value, tag.author])
 
         table = tabulate(rows, headers=["Key", "Value", "Author"], tablefmt="simple")
-        await ctx.respond(f"```diff\n{table}\n```")
+        
+        #error catching
+        try:
+            await ctx.respond(f"```diff\n{table}\n```")
+        except:
+            await ctx.respond(f"Too many results! Refine your search.")
 
-    @tag.command(description="Count all tags and tell you.")
+    @tag.command(description="Count all tags and tell you.", guild_ids=[global_config.guild_id])
     async def count(self, ctx):
         count = await Tag.all().count()
         await ctx.respond(f"{info} There are `{count}` tags.")

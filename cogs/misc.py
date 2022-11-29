@@ -46,7 +46,7 @@ class Misc(commands.Cog):
     async def test(self, ctx):
         pass
 
-    @discord.slash_command(description="See map test commands.")
+    @discord.slash_command(description="See map test commands.", guild_ids=[global_config.guild_id])
     async def imp(self, ctx):
         embed = discord.Embed(
             description=f"{config.imp.description}"
@@ -59,10 +59,10 @@ class Misc(commands.Cog):
         embed.set_footer(text=global_config.bot_footer)
         await ctx.respond(embed=embed)
 
-    @discord.slash_command(description="See my code.")
+    @discord.slash_command(description="See my code.", guild_ids=[global_config.guild_id])
     async def code(self, ctx):
         await ctx.respond(f"{github} You can find my code at https://github.com/TF2Maps/TF2M-bot-2021")
 
-    @discord.slash_command(description="Sends the bot's latency.")
+    @discord.slash_command(description="Sends the bot's latency.", guild_ids=[global_config.guild_id])
     async def ping(self, ctx):
         await ctx.respond(f"Pong!")

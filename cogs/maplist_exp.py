@@ -72,6 +72,11 @@ class MapList(Cog):
 
         await ctx.edit(embed=embed, content="")
 
+    @discord.slash_command(description="Upload a map without adding it to the queue.", guild_ids=[832585231969026059])
+    async def upload(self, ctx, server: discord.Option(str, choices=["Casual", "MVM", "Redirect Only"]), link: discord.Option(str)):
+        message = await ctx.respond(f"{loading} Uploading the map...")
+        await self.uploader(ctx, server, message, link)
+
     @discord.slash_command(description="Add your map to the map testing queue.", guild_ids=[global_config.guild_id])
     async def add(self, ctx, link: discord.Option(str), *, notes: discord.Option(str, required=False)):
         message = await ctx.respond(f"{loading} Adding your map...")
@@ -118,7 +123,6 @@ class MapList(Cog):
             await maps[0].delete()
             await ctx.respond(f"{success} Deleted `{maps[0].map}` from the list.")
 
-
     @discord.slash_command(description="See the current map testing queue.", guild_ids=[global_config.guild_id])
     async def maps(self, ctx):
         # us_server = get_srcds_server_info("us.tf2maps.net")
@@ -146,11 +150,7 @@ class MapList(Cog):
         embed.add_field(name="Map Queue", value=map_names, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
-        #if maplist is too long or no maps
-        try:
-            await ctx.respond(embed=embed)
-        except:
-            await ctx.respond(f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
+        await ctx.respond(embed=embed)
 
     async def add_map(self, ctx, message, link, notes="", old_map=None):
         # If not link; use fuzzy search
@@ -158,27 +158,28 @@ class MapList(Cog):
             try:
                 link = await search_downloads(link, discord_user_id=ctx.author.id)
             except ForumUserNotFoundException:
-                await message.edit(content=f"{error} You either need to provide a link or need to connect your TF2Maps.net account to Discord. See <#{global_config.faq_channel_id}>")
+                await ctx.edit(content=f"{error} You either need to provide a link or need to connect your TF2Maps.net account to Discord. See <#{global_config.faq_channel_id}>")
                 return
+                 
 
             if not link:
-                await message.edit(content=f"{error} Could not find a download by the name. Try using a link instead.")
-                await ctx.send_help(ctx.command)
+                await ctx.edit(content=f"{error} Could not find a download by the name. Try using a link instead.")
                 return
+
             else:
                 if len(link) > 1:
-                    await message.edit(content=f"{error} Found multiple links. Use a more specific link.")
+                    await ctx.edit(content=f"{error} Found multiple links. Use a more specific link.")
                     return
+
                 link = link[0]
 
         # Find map download in link
         link = await self.parse_link(link)
         if not link:
-            await message.edit(content=f"{error} No valid link found.")
-            await ctx.send_help(ctx.command)
+            await ctx.edit(content=f"{error} No valid link found.")
             return
 
-        await message.edit(content=f"{loading} Found link: {link}")
+        await ctx.edit(content=f"{loading} Found link: {link}")
 
         # Get map info
         filename = await get_download_filename(link)
@@ -187,31 +188,30 @@ class MapList(Cog):
         
         # Must be a BSP
         if not re.search("\.bsp$", filename):
-            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
+            await ctx.edit(content=f"{warning} `{map_name}` is not a BSP!")
             return
 
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
         if len(already_in_queue) > 0 and not old_map:
-            await message.edit(content=f"{warning} `{map_name}` is already on the list!")
+            await ctx.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
         # Download the map
-        await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
+        await ctx.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
         await download_file(link, filepath)
         
         # Compress file for redirect
-        await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
+        await ctx.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
 
         # Ensure map has the same MD5 sum as an existing one
         if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
             if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
-                await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                await ctx.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
                 return
 
         # Upload to servers
-        await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
         await asyncio.gather(
             upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
             upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net),
@@ -219,15 +219,14 @@ class MapList(Cog):
         )
 
         # Insert map into DB
-        await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
-
         if old_map:
             old_map.url = link
             old_map.map = map_name
             if notes:
                 old_map.notes = notes
             await old_map.save()
-            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+            await ctx.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+
         else:
             await Maps.create(
                 discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
@@ -238,8 +237,89 @@ class MapList(Cog):
                 notes=notes,
                 added=datetime.now()
             )
-            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+            await ctx.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
 
+    #I don't want to refactor it all yet...
+    async def uploader(self, ctx, server, message, link, old_map=None):
+        if(server == "Casual"):
+            
+            eucreds = global_config.sftp.eu_tf2maps_net
+            uscreds = global_config.sftp.us_tf2maps_net
+
+        elif(server == "MVM"):
+            await ctx.edit(content=f"{warning} MVM server upload not supported yet.")
+            return
+            #eucreds = global_config.sftp.mvm.eu
+            #uscreds = global_config.sftp.mvm.us
+        else:
+            #redirect only
+            #await asyncio.gather(
+            #    upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+            #)
+            #await ctx.edit(content=f"{success} Uploaded to the redirect only! This bypasses MD5 checking, BE CAREFUL!.")
+            await ctx.edit(content=f"{warning} Redirect upload not supported yet.")
+            return
+
+        # If not link; use fuzzy search
+        if not re.match("https?://", link):
+            try:
+                link = await search_downloads(link, discord_user_id=ctx.author.id)
+            except ForumUserNotFoundException:
+                await ctx.edit(content=f"{error} You either need to provide a link or need to connect your TF2Maps.net account to Discord. See <#{global_config.faq_channel_id}>")
+                return
+                 
+
+            if not link:
+                await ctx.edit(content=f"{error} Could not find a download by the name. Try using a link instead.")
+                return
+
+            else:
+                if len(link) > 1:
+                    await ctx.edit(content=f"{error} Found multiple links. Use a more specific link.")
+                    return
+
+                link = link[0]
+
+        # Find map download in link
+        link = await self.parse_link(link)
+        if not link:
+            await ctx.edit(content=f"{error} No valid link found.")
+            return
+
+        await ctx.edit(content=f"{loading} Found link: {link}")
+
+        # Get map info
+        filename = await get_download_filename(link)
+        filepath = os.path.join(tempfile.mkdtemp(), filename)
+        map_name = re.sub("\.bsp$", "", filename)
+        
+        # Must be a BSP
+        if not re.search("\.bsp$", filename):
+            await ctx.edit(content=f"{warning} `{map_name}` is not a BSP!")
+            return
+
+        # Download the map
+        await ctx.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
+        await download_file(link, filepath)
+        
+        # Compress file for redirect
+        await ctx.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
+        compressed_file = compress_file(filepath)
+
+        # Ensure map has the same MD5 sum as an existing one
+        if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
+            if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
+                await ctx.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                return
+
+        # Upload to servers
+        await asyncio.gather(
+            upload_to_gameserver(filepath, **eucreds),
+            upload_to_gameserver(filepath, **uscreds),
+            upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+        )
+
+        await ctx.edit(content=f"{success} Map uploaded to the servers and redirect.")
 
     @staticmethod
     async def parse_link(link):
@@ -270,9 +350,23 @@ class MapList(Cog):
 
         return matched_link
 
+        # TODO discord
+        # Example: https://cdn.discordapp.com/attachments/843684540135505961/978092571253424178/cp_baxter_a5a.bsp
+
         # TODO Direct link
         # Example: http://maps.tf2.games/maps/jump_pyro_b1.bsp
 
         # TODO Google Drive Link
         # Example: https://drive.google.com/file/d/17KXUZV7iHUL_A5pwOGNbVkbeCXUDIOgo/view?usp=sharing
         #          embeds link in page: https://drive.google.com/u/0/uc?id=17KXUZV7iHUL_A5pwOGNbVkbeCXUDIOgo&export=download
+
+
+"""
+
+    @discord.slash_command(name="attach_file")
+    @discord.option("attachment", discord.Attachment, description="A file to attach to the message", required=False)
+    async def say(self, ctx: discord.ApplicationContext, attachment: discord.Attachment):
+
+        file = await attachment.to_file()
+        await ctx.respond("Here's your file!", file=file)
+"""
