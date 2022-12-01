@@ -7,6 +7,15 @@ from discord.ext.commands import Cog, command, has_any_role, group
 from tabulate import tabulate
 from tortoise.expressions import Q
 
+#Slash Command Imports
+from discord.commands import (
+    slash_command,
+    Option,
+    message_command,
+    user_command,
+    SlashCommandGroup
+)
+
 # Local Imports
 from models.Tag import Tag
 from utils import load_config, cog_error_handler
@@ -31,15 +40,9 @@ class Tags(Cog):
         if tag:
             await message.channel.send(tag.value)
 
-    @group()
-    @has_any_role(*config.create.role_names)
-    @not_nobot_role()
-    async def tag(self, ctx):
-        pass
+    tag = SlashCommandGroup("tag", "Commands for our tag system.", guild_ids=[global_config.guild_id])
 
-    @tag.command(aliases=config.create.aliases, help=config.create.help)
-    @has_any_role(*config.create.role_names)
-    @not_nobot_role()
+    @tag.command(description="Create a tag.", guild_ids=[global_config.guild_id])
     async def create(self, ctx, key, *, value):
         tag, created = await Tag.get_or_create(
             key=key.lower(),
@@ -48,25 +51,21 @@ class Tags(Cog):
         )
 
         if created:
-            await ctx.send(f"{success} Created tag `{key}`!")
+            await ctx.respond(f"{success} Created tag `{key}`!")
         else:
-            await ctx.send(f"{error} Tag already exists")
+            await ctx.respond(f"{error} Tag already exists")
 
-    @tag.command(aliases=config.remove.aliases, help=config.remove.help)
-    @has_any_role(*config.remove.role_names)
-    @not_nobot_role()
+    @tag.command(description="Remove a tag.", guild_ids=[global_config.guild_id])
     async def remove(self, ctx, key):
         tag = await Tag.get_or_none(key=key)
 
         if tag:
             await tag.delete()
-            await ctx.send(f"{success} Deleted tag `{key}`!")
+            await ctx.respond(f"{success} Deleted tag `{key}`!")
         else:
-            await ctx.send(f"{error} Tag `{key}` not found.")
+            await ctx.respond(f"{error} Tag `{key}` not found.")
 
-    @tag.command(aliases=config.list.aliases, help=config.list.help)
-    @has_any_role(*config.list.role_names)
-    @not_nobot_role()
+    @tag.command(description="Create a range of tags given a string.", guild_ids=[global_config.guild_id])
     async def list(self, ctx, *, search):
         tags = await Tag.filter(
             Q(key__icontains=search) | Q(author__icontains=search)
@@ -77,11 +76,14 @@ class Tags(Cog):
             rows.append([tag.key, tag.value, tag.author])
 
         table = tabulate(rows, headers=["Key", "Value", "Author"], tablefmt="simple")
-        await ctx.send(f"```diff\n{table}\n```")
+        
+        #error catching
+        try:
+            await ctx.respond(f"```diff\n{table}\n```")
+        except:
+            await ctx.respond(f"Too many results! Refine your search.")
 
-    @tag.command(aliases=config.count.aliases, help=config.count.help)
-    @has_any_role(*config.count.role_names)
-    @not_nobot_role()
+    @tag.command(description="Count all tags and tell you.", guild_ids=[global_config.guild_id])
     async def count(self, ctx):
         count = await Tag.all().count()
-        await ctx.send(f"{info} There are `{count}` tags.")
+        await ctx.respond(f"{info} There are `{count}` tags.")

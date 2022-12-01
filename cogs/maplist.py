@@ -1,3 +1,4 @@
+# Std Lib Imports
 import asyncio
 import re
 import aioboto3
@@ -17,6 +18,14 @@ import discord
 import httpx
 from tortoise.expressions import Q
 
+#Slash Command Imports
+from discord.commands import (
+    slash_command,
+    Option,
+    message_command,
+    user_command
+)
+
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
@@ -33,16 +42,14 @@ config = global_config.cogs.maplist
 class MapList(Cog):
     cog_command_error = cog_error_handler
 
-    @command()
-    @has_any_role(*config.add.role_names)
-    @not_nobot_role()
-    async def uploadcheck(self, ctx, map_name):
-        message = await ctx.reply(f"{loading} Checking...")
+    @discord.slash_command(description="Check the upload status of your map.", guild_ids=[global_config.guild_id])
+    async def uploadcheck(self, ctx, file_name: discord.Option(str)):
+        message = await ctx.respond(f"{loading} Checking...")
 
         us, eu, redirect = await asyncio.gather(
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
-            redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
+            remote_file_exists(f"{file_name}.bsp", **global_config.sftp.us_tf2maps_net),
+            remote_file_exists(f"{file_name}.bsp", **global_config.sftp.eu_tf2maps_net),
+            redirect_file_exists(f"{file_name}.bsp.bz2", global_config['vultr_s3_client']),
         )
 
         output = ""
@@ -63,37 +70,36 @@ class MapList(Cog):
         embed.set_author(name=f"Map Upload Status")
         embed.set_footer(text=global_config.bot_footer)
 
-        await message.edit(embed=embed, content="")
+        await ctx.edit(embed=embed, content="")
 
-    @command(aliases=config.add.aliases, help=config.add.help)
-    @has_any_role(*config.add.role_names)
-    @not_nobot_role()
-    async def add(self, ctx, link, *, notes=""):
-        message = await ctx.reply(f"{loading} Adding your map...")
+    @discord.slash_command(description="Add your map to the map testing queue.", guild_ids=[global_config.guild_id])
+    async def add(self, ctx, link: discord.Option(str), *, notes: discord.Option(str, required=False)):
+        message = await ctx.respond(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, notes)
 
-    @command(aliases=config.update.aliases, help=config.update.help)
-    @has_any_role(*config.update.role_names)
-    @not_nobot_role()
-    async def update(self, ctx, map_name, link, *, notes=""):
+    @discord.slash_command(description="Update your map while keeping its slot in the queue.", guild_ids=[global_config.guild_id])
+    async def update(self, ctx, map_name, link: discord.Option(str, required=False), *, notes: discord.Option(str, required=False)):
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
-            await ctx.send(f"{error} You don't have a map with that name on the list!")
+            await ctx.respond(content=f"{error} You don't have a map with that name on the list!")
         else:
+            
+            if not link: 
+                # If just the name is specified, this allows map updates to be applied without needing to type the name twice
+                link = map_name
+            
             if link == "-":
                 if not notes:
-                    await ctx.reply(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                    await ctx.respond(content=f"{error} Add a link or notes. Otherwise, there is nothing to update.")
                 maps[0].notes = notes
                 await maps[0].save()
-                await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
+                await ctx.respond(content=f"{success} Updated the notes for `{maps[0].map}`!")
             else:
-                message = await ctx.reply(f"{loading} Updating your map...")
+                message = await ctx.respond(content=f"{loading} Updating your map...")
                 await self.add_map(ctx, message, link, notes, old_map=maps[0])
 
-    @command(aliases=config.delete.aliases, help=config.delete.help)
-    @has_any_role(*config.delete.role_names)
-    @not_nobot_role()
+    @discord.slash_command(description="Remove your map from the map testing queue.", guild_ids=[global_config.guild_id])
     async def delete(self, ctx, map_name):
         maps = []
         override_roles = set(config.delete.override_roles)
@@ -107,15 +113,13 @@ class MapList(Cog):
             maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
-            await ctx.send(f"{error} You don't have a map with that name on the list!")
+            await ctx.respond(f"{error} You don't have a map with that name on the list!")
         else:
             await maps[0].delete()
-            await ctx.send(f"{success} Deleted `{maps[0].map}` from the list.")
+            await ctx.respond(f"{success} Deleted `{maps[0].map}` from the list.")
 
 
-    @command(aliases=config.maps.aliases, help=config.maps.help)
-    @has_any_role(*config.maps.role_names)
-    @not_nobot_role()
+    @discord.slash_command(description="See the current map testing queue.", guild_ids=[global_config.guild_id])
     async def maps(self, ctx):
         # us_server = get_srcds_server_info("us.tf2maps.net")
         # eu_server = get_srcds_server_info("eu.tf2maps.net")
@@ -142,7 +146,11 @@ class MapList(Cog):
         embed.add_field(name="Map Queue", value=map_names, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
-        await ctx.send(embed=embed)
+        #if maplist is too long or no maps
+        try:
+            await ctx.respond(embed=embed)
+        except:
+            await ctx.respond(f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
 
     async def add_map(self, ctx, message, link, notes="", old_map=None):
         # If not link; use fuzzy search

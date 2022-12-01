@@ -15,20 +15,26 @@ from utils import load_config, EmbedHelpCommand, setup_logger
 config = load_config()
 setup_logger(config.log_level)
 
+#stuff for intents
+intents = discord.Intents.default()
+intents.members = True
+intents.guilds = True
+
 def main():
-    bot = commands.Bot(command_prefix=config.bot_prefix)
+    bot = commands.Bot(command_prefix=config.bot_prefix, intents=intents)
 
     bot.help_command = EmbedHelpCommand()
 
     # Load Plugins
+    bot.add_cog(Misc(bot))
     bot.add_cog(Search())
     bot.add_cog(Tags())
     bot.add_cog(MapList())
     bot.add_cog(Servers())
     bot.add_cog(VIP())
-    bot.add_cog(Misc(bot))
     bot.add_cog(ServeMe())
 
+    
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())
     bot.loop.add_signal_handler(signal.SIGTERM, lambda: bot.loop.stop())
@@ -43,7 +49,7 @@ def main():
     finally:
         future.remove_done_callback(bot.loop.stop)
         discord.client._cleanup_loop(bot.loop)
-
+    
 
 async def start(bot, token):
     await init_db()
@@ -53,7 +59,6 @@ async def start(bot, token):
     finally:
         if not bot.is_closed:
             await bot.close()
-
 
 async def init_db():
     await Tortoise.init(
@@ -76,6 +81,10 @@ async def init_db():
                 "starboard": {
                     "models": ["models.Starboard"],
                     "default_connection": "starboard"
+                },
+                "verification": {
+                    "models": ["models.Verification"],
+                    "default_connection": "tf2maps_bot"
                 }
             }
         }

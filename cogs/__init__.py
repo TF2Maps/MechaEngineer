@@ -7,3 +7,7 @@ from .serveme import ServeMe
 from .misc import Misc
 from .starboard import Starboard
 from .modmail import ModMail
+from .reporting import Reporting
+from .verification import Verification
+from .eventlogger import EventLogger
+from .mappinghelp import MappingHelp

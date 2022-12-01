@@ -5,6 +5,7 @@ import logging
 # 3rd Party Imports
 import discord
 from discord.ext.commands import Cog, command, has_any_role
+from discord.ext import commands
 
 # Local Imports
 from utils import load_config, cog_error_handler
@@ -15,7 +16,7 @@ global_config = load_config()
 config = global_config.cogs.misc
 
 
-class Misc(Cog):
+class Misc(commands.Cog):
     cog_command_error = cog_error_handler
 
     def __init__(self, bot):
@@ -37,7 +38,7 @@ class Misc(Cog):
         elif month == "December":
             game_name = "Santa Fortress 2"
 
-        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | !help"))
+        await self.bot.change_presence(activity=discord.Game(name=f"{game_name}"))
 
     @command(help=config.code.help)
     @has_any_role(*config.code.role_names)
@@ -45,9 +46,7 @@ class Misc(Cog):
     async def test(self, ctx):
         pass
 
-    @command(help=config.imp.help)
-    @has_any_role(*config.imp.role_names)
-    @not_nobot_role()
+    @discord.slash_command(description="See map test commands.", guild_ids=[global_config.guild_id])
     async def imp(self, ctx):
         embed = discord.Embed(
             description=f"{config.imp.description}"
@@ -58,16 +57,12 @@ class Misc(Cog):
             embed.add_field(name=f"{category.capitalize()} Commands", value=f"{text}", inline=False)
 
         embed.set_footer(text=global_config.bot_footer)
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
-    @command(aliases=config.code.aliases, help=config.code.help)
-    @has_any_role(*config.code.role_names)
-    @not_nobot_role()
+    @discord.slash_command(description="See my code.", guild_ids=[global_config.guild_id])
     async def code(self, ctx):
-        await ctx.send(f"{github} You can find my code at https://github.com/TF2Maps/TF2M-bot-2021")
+        await ctx.respond(f"{github} You can find my code at https://github.com/TF2Maps/TF2M-bot-2021")
 
-    @command(aliases=config.ping.aliases, help=config.ping.help)
-    @has_any_role(*config.ping.role_names)
-    @not_nobot_role()
+    @discord.slash_command(description="Sends the bot's latency.", guild_ids=[global_config.guild_id])
     async def ping(self, ctx):
-        await ctx.send(f"Pong")
+        await ctx.respond(f"Pong!")
