@@ -66,4 +66,7 @@ async def search_with_bing(site, term, exclude=[]):
 
 
 def get_srcds_server_info(host, port=27015):
-    return a2s.info((host, port))
+    server = a2s.info((host, port))
+    players = a2s.players((host, port))
+
+    return (server, players)
