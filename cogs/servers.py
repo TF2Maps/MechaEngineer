@@ -1,6 +1,9 @@
 # Std Lib Imports
 import socket
+<<<<<<< HEAD
 from datetime import datetime
+=======
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
 
 # 3rd Party Imports
 import discord
@@ -54,24 +57,40 @@ class Servers(Cog):
     @not_nobot_role()
     async def usserver(self, ctx):
         try:
+<<<<<<< HEAD
             server, players = get_srcds_server_info("us.tf2maps.net")
             embed = await self.get_server_embed(server, "us.tf2maps.net")
             await ctx.send(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("us.tf2maps.net")
             await self.us_server_embed_message.edit(embed=embed)
+=======
+            server = get_srcds_server_info("us.tf2maps.net")
+            embed = await self.get_server_embed(server, "us.tf2maps.net")
+            await ctx.send(embed=embed)
+        except socket.timeout:
+            await ctx.send('US server is offline. Try again later.')
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
 
     @command(aliases=config.euserver.aliases, help=config.euserver.help)
     @has_any_role(*config.euserver.role_names)
     @not_nobot_role()
     async def euserver(self, ctx):
         try:
+<<<<<<< HEAD
             server, players = get_srcds_server_info("eu.tf2maps.net")
             embed = await self.get_server_embed(server, "eu.tf2maps.net")
             await ctx.send(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
             await self.us_server_embed_message.edit(embed=embed)
+=======
+            server = get_srcds_server_info("eu.tf2maps.net")
+            embed = await self.get_server_embed(server, "eu.tf2maps.net")
+            await ctx.send(embed=embed)
+        except socket.timeout:
+            await ctx.send('EU Server is offline. Try again later.')
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
 
     @command(aliases=config.active.aliases, help=config.active.help)
     @has_any_role(*config.active.role_names)
@@ -80,13 +99,21 @@ class Servers(Cog):
         alive = False
  
         try:
+<<<<<<< HEAD
             us_server, us_players = get_srcds_server_info("us.tf2maps.net")
+=======
+            us_server = get_srcds_server_info("us.tf2maps.net")
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
             if us_server.player_count > config.active.player_threshold:
                 embed = await self.get_server_embed(us_server, "us.tf2maps.net")
                 await ctx.send(embed=embed)
                 alive = True
 
+<<<<<<< HEAD
             eu_server, eu_players = get_srcds_server_info("eu.tf2maps.net")
+=======
+            eu_server = get_srcds_server_info("eu.tf2maps.net")
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
             if eu_server.player_count > config.active.player_threshold:
                 embed = await self.get_server_embed(eu_server, "eu.tf2maps.net")
                 await ctx.send(embed=embed)
@@ -144,4 +171,8 @@ class Servers(Cog):
         embed.set_thumbnail(url=thumbnail)
         embed.set_footer(text=global_config.bot_footer)
 
+<<<<<<< HEAD
         return embed        
+=======
+        return embed
+>>>>>>> 5e8f5706bb7d2fa2758ede8af579d391ccaf8db3
