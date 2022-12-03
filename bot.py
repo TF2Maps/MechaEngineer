@@ -16,7 +16,11 @@ config = load_config()
 setup_logger(config.log_level)
 
 def main():
-    bot = commands.Bot(command_prefix=config.bot_prefix)
+    intents = discord.Intents.default()
+    intents.message_content = True
+    intents.members = True
+
+    bot = commands.Bot(command_prefix=config.bot_prefix, intents=intents)
 
     bot.help_command = EmbedHelpCommand()
 

@@ -4,12 +4,12 @@ import logging
 
 # 3rd Party Imports
 import discord
-from discord.ext.commands import Cog, command, has_any_role
+from discord.ext.commands import Cog, slash_command
 
 # Local Imports
 from utils import load_config, cog_error_handler
-from utils.emojis import success, warning, error, info, github
-from utils.discord import not_nobot_role
+from utils.emojis import github
+from utils.discord import not_nobot_role_slash, roles_required
 
 global_config = load_config()
 config = global_config.cogs.misc
@@ -37,17 +37,17 @@ class Misc(Cog):
         elif month == "December":
             game_name = "Santa Fortress 2"
 
-        await self.bot.change_presence(activity=discord.Game(name=f"{game_name} | !help"))
+        await self.bot.change_presence(activity=discord.Game(name=f"{game_name}"))
 
-    @command(help=config.code.help)
-    @has_any_role(*config.code.role_names)
-    @not_nobot_role()
-    async def test(self, ctx):
-        pass
-
-    @command(help=config.imp.help)
-    @has_any_role(*config.imp.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="imp", 
+        description=config.imp.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.imp.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def imp(self, ctx):
         embed = discord.Embed(
             description=f"{config.imp.description}"
@@ -58,16 +58,29 @@ class Misc(Cog):
             embed.add_field(name=f"{category.capitalize()} Commands", value=f"{text}", inline=False)
 
         embed.set_footer(text=global_config.bot_footer)
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
-    @command(aliases=config.code.aliases, help=config.code.help)
-    @has_any_role(*config.code.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="code", 
+        description=config.code.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.code.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def code(self, ctx):
-        await ctx.send(f"{github} You can find my code at https://github.com/TF2Maps/MechaEngineer")
+        await ctx.respond(f"{github} You can find my code at https://github.com/TF2Maps/MechaEngineer")
 
-    @command(aliases=config.ping.aliases, help=config.ping.help)
-    @has_any_role(*config.ping.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="ping", 
+        description=config.ping.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.ping.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def ping(self, ctx):
-        await ctx.send(f"Pong")
+        await ctx.respond(f"Pong")
+
