@@ -36,16 +36,21 @@ async def cog_error_handler(self, ctx, error_message):
         await ctx.send(f"{error} Missing required arguments")
         await ctx.send_help(ctx.command)
     elif isinstance(error_message, commands.MissingAnyRole):
-        await ctx.send(f"{error} {error_message}")
+        await ctx.respond(f"{error} {error_message}")
     elif isinstance(error_message, discord.errors.DiscordServerError):
         await ctx.send(f"{error} Discord API returned a fatal error. Try command again later")
     elif isinstance(error_message, discord.ext.commands.errors.CheckFailure):
         await ctx.send(f"{error} You do not meet the critera for using this command.")
+    elif isinstance(error_message, discord.errors.CheckFailure):
+        await ctx.respond(f"{error} You do not meet the critera for using this command.")
     else:
         tb = traceback.format_exception(None, error_message.original, error_message.original.__traceback__)
         await ctx.send(f"{error} <@65497519504764928> Unhandled Exception:\n ```\n{''.join(tb)}```")
 
 def not_nobot_role():
+    """
+    TODO: DEPRECATED
+    """
     def predicate(ctx):
         for role in ctx.author.roles:
             if role.name == "No Bot":
@@ -53,3 +58,29 @@ def not_nobot_role():
         else:
             return True
     return commands.check(predicate)
+
+
+def not_nobot_role_slash():
+    def wrappedf(ctx):
+        user_roles = [r.name.lower() for r in ctx.author.roles]
+
+        if "no bot" in user_roles:
+            raise discord.errors.CheckFailure
+        else:
+            return True
+    return wrappedf
+
+
+def roles_required(role_names):
+    def wrapped(ctx):
+        user_roles = [r.name.lower() for r in ctx.author.roles]
+
+        if "no bot" in user_roles:
+            raise discord.errors.CheckFailure
+
+        for role in role_names:
+            if role.lower() in user_roles:
+                return True
+        else: 
+            raise discord.ext.commands.MissingAnyRole(role_names)
+    return wrapped    

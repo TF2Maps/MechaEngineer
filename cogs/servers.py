@@ -5,13 +5,13 @@ from datetime import datetime
 # 3rd Party Imports
 import discord
 from discord.ext import tasks
-from discord.ext.commands import Cog, command, has_any_role
+from discord.ext.commands import Cog, slash_command
 import valve.source.a2s
 
 # Local Imports
 from utils import load_config, get_srcds_server_info, cog_error_handler
 from utils.emojis import success, warning, error, info, loading
-from utils.discord import not_nobot_role
+from utils.discord import not_nobot_role_slash, roles_required
 
 global_config = load_config()
 config = global_config.cogs.servers
@@ -49,53 +49,76 @@ class Servers(Cog):
             await self.eu_server_embed_message.edit(embed=embed)
 
 
-    @command(aliases=config.usserver.aliases, help=config.usserver.help)
-    @has_any_role(*config.usserver.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="us", 
+        description=config.usserver.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.usserver.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def usserver(self, ctx):
+        await ctx.defer()
         try:
             server, players = get_srcds_server_info("us.tf2maps.net")
             embed = await self.get_server_embed(server, "us.tf2maps.net")
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("us.tf2maps.net")
-            await self.us_server_embed_message.edit(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @command(aliases=config.euserver.aliases, help=config.euserver.help)
-    @has_any_role(*config.euserver.role_names)
-    @not_nobot_role()
-    async def euserver(self, ctx):
+
+    @slash_command(
+        name="eu", 
+        description=config.euserver.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.euserver.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def eu(self, ctx):
+        await ctx.defer()
         try:
             server, players = get_srcds_server_info("eu.tf2maps.net")
             embed = await self.get_server_embed(server, "eu.tf2maps.net")
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
-            await self.us_server_embed_message.edit(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @command(aliases=config.active.aliases, help=config.active.help)
-    @has_any_role(*config.active.role_names)
-    @not_nobot_role()
+
+    @slash_command(
+        name="active", 
+        description=config.active.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.active.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def active(self, ctx):
+        await ctx.defer()
         alive = False
  
         try:
             us_server, us_players = get_srcds_server_info("us.tf2maps.net")
             if us_server.player_count > config.active.player_threshold:
                 embed = await self.get_server_embed(us_server, "us.tf2maps.net")
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
                 alive = True
 
             eu_server, eu_players = get_srcds_server_info("eu.tf2maps.net")
             if eu_server.player_count > config.active.player_threshold:
                 embed = await self.get_server_embed(eu_server, "eu.tf2maps.net")
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
                 alive = True
 
             if not alive:
-                await ctx.send(f"{warning} No map tests are currently happening right now. Check back later")
+                await ctx.respond(f"{warning} No map tests are currently happening right now. Check back later")
         except socket.timeout:
-            await ctx.send('A server is offline. Please use !eu or !us for the time being.')
+            await ctx.respond('A server is offline. Please use !eu or !us for the time being.')
 
     @staticmethod
     async def get_server_embed(server_data, host, player_data=None):

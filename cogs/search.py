@@ -1,18 +1,17 @@
 # Std Lib Imports
-import re
+pass
 
 # 3rd Party Imports
 import discord
-from discord.ext.commands import Cog, command, has_any_role
-from bs4 import BeautifulSoup
-import httpx
-import databases
+from discord.ext.commands import Cog, slash_command
+from discord.commands import SlashCommandGroup
 
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.search import search_with_bing, search_downloads
-from utils.emojis import success, warning, error, info, loading
-from utils.discord import not_nobot_role
+from utils.emojis import error
+from utils.discord import not_nobot_role_slash, roles_required
+
 
 global_config = load_config()
 config = global_config.cogs.search
@@ -21,24 +20,36 @@ config = global_config.cogs.search
 class Search(Cog):
     cog_command_error = cog_error_handler
 
-    @command(aliases=config.vdc.aliases, help=config.vdc.help)
-    @has_any_role(*config.vdc.role_names)
-    @not_nobot_role()
+    search = SlashCommandGroup("search", guild_ids=global_config.bot_guild_ids)
+
+    @search.command(
+        name="vdc", 
+        description=config.vdc.help, 
+        checks=[
+            roles_required(config.vdc.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def vdc(self, ctx, *, term):
-        await ctx.trigger_typing()
+        await ctx.defer()
         site = "developer.valvesoftware.com/wiki"
         links = await search_with_bing(site, term)
         embed = self.get_search_embed(links[:10], term, "Valve Developer Wiki", global_config.icons.vdc_icon, remove_prefix=f"https://{site}/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @command(aliases=config.tf2m.aliases, help=config.tf2m.help)
-    @has_any_role(*config.tf2m.role_names)
-    @not_nobot_role()
-    async def tf2m(self, ctx, *, term):
-        await ctx.trigger_typing()
+    @search.command(
+        name="tf2maps", 
+        description=config.tf2maps.help, 
+        checks=[
+            roles_required(config.tf2maps.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def tf2maps(self, ctx, *, term):
+        await ctx.defer()
         site = "tf2maps.net"
         links = await search_with_bing(
             site,
@@ -51,21 +62,27 @@ class Search(Cog):
         )
         embed = self.get_search_embed(links[:10], term, "TF2 Maps", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
-    @command(aliases=config.dl.aliases, help=config.dl.help)
-    @has_any_role(*config.dl.role_names)
-    @not_nobot_role()
-    async def dl(self, ctx, resource_name):
+    @search.command(
+        name="downloads", 
+        description=config.downloads.help, 
+        checks=[
+            roles_required(config.downloads.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def downloads(self, ctx, resource_name):
+        await ctx.defer()
         site = "tf2maps.net"
         links = await search_downloads(resource_name)
         embed = self.get_search_embed(links[:10], resource_name, "TF2 Maps Downloads", global_config.icons.tf2m_icon, remove_prefix=f"https://{site}/downloads/")
         try:
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except discord.errors.HTTPException:
-            await ctx.reply(f"{error} Query returned too many results to display. Try a more specific query")
+            await ctx.respond(f"{error} Query returned too many results to display. Try a more specific query")
 
     @staticmethod
     def get_search_embed(links, term, title, icon, remove_prefix=""):

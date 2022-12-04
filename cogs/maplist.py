@@ -12,7 +12,7 @@ import hashlib
 # 3rd Party Imports
 import asyncssh
 from bs4 import BeautifulSoup
-from discord.ext.commands import Cog, command, has_any_role
+from discord.ext.commands import Cog, slash_command
 import discord
 import httpx
 from tortoise.expressions import Q
@@ -22,7 +22,7 @@ from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
 from utils.files import compress_file, download_file, get_download_filename, upload_to_gameserver, upload_to_redirect, remote_file_exists, redirect_file_exists, check_redirect_hash
 from utils.search import search_downloads, ForumUserNotFoundException
-from utils.discord import not_nobot_role
+from utils.discord import not_nobot_role_slash, roles_required
 
 from models import Maps
 
@@ -33,11 +33,18 @@ config = global_config.cogs.maplist
 class MapList(Cog):
     cog_command_error = cog_error_handler
 
-    @command()
-    @has_any_role(*config.add.role_names)
-    @not_nobot_role()
+
+    @slash_command(
+        name="uploadcheck", 
+        description=config.uploadcheck.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.uploadcheck.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def uploadcheck(self, ctx, map_name):
-        message = await ctx.reply(f"{loading} Checking...")
+        await ctx.defer()
 
         us, eu, redirect = await asyncio.gather(
             remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
@@ -63,38 +70,61 @@ class MapList(Cog):
         embed.set_author(name=f"Map Upload Status")
         embed.set_footer(text=global_config.bot_footer)
 
-        await message.edit(embed=embed, content="")
+        await ctx.respond(embed=embed, content="")
 
-    @command(aliases=config.add.aliases, help=config.add.help)
-    @has_any_role(*config.add.role_names)
-    @not_nobot_role()
+
+    @slash_command(
+        name="add", 
+        description=config.add.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.add.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def add(self, ctx, link, *, notes=""):
-        message = await ctx.reply(f"{loading} Adding your map...")
+        await ctx.defer()
+        message = await ctx.respond(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, notes)
 
-    @command(aliases=config.update.aliases, help=config.update.help)
-    @has_any_role(*config.update.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="update", 
+        description=config.update.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.update.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def update(self, ctx, map_name, link, *, notes=""):
+        await ctx.defer()
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
-            await ctx.send(f"{error} You don't have a map with that name on the list!")
+            await ctx.respond(f"{error} You don't have a map with that name on the list!")
         else:
             if link == "-":
                 if not notes:
-                    await ctx.reply(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                    await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
                 maps[0].notes = notes
                 await maps[0].save()
-                await ctx.reply(f"{success} Updated the notes for `{maps[0].map}`!")
+                await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
-                message = await ctx.reply(f"{loading} Updating your map...")
+                message = await ctx.respond(f"{loading} Updating your map...")
                 await self.add_map(ctx, message, link, notes, old_map=maps[0])
 
-    @command(aliases=config.delete.aliases, help=config.delete.help)
-    @has_any_role(*config.delete.role_names)
-    @not_nobot_role()
+
+    @slash_command(
+        name="delete", 
+        description=config.delete.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.delete.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def delete(self, ctx, map_name):
+        await ctx.defer()
         maps = []
         override_roles = set(config.delete.override_roles)
         user_roles = set([role.name for role in ctx.author.roles])
@@ -107,21 +137,28 @@ class MapList(Cog):
             maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
         if len(maps) == 0:
-            await ctx.send(f"{error} You don't have a map with that name on the list!")
+            await ctx.respond(f"{error} You don't have a map with that name on the list!")
         else:
             await maps[0].delete()
-            await ctx.send(f"{success} Deleted `{maps[0].map}` from the list.")
+            await ctx.respond(f"{success} Deleted `{maps[0].map}` from the list.")
 
 
-    @command(aliases=config.maps.aliases, help=config.maps.help)
-    @has_any_role(*config.maps.role_names)
-    @not_nobot_role()
+    @slash_command(
+        name="maps", 
+        description=config.maps.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.maps.role_names),
+            not_nobot_role_slash()
+        ]
+    )
     async def maps(self, ctx):
         # us_server = get_srcds_server_info("us.tf2maps.net")
         # eu_server = get_srcds_server_info("eu.tf2maps.net")
         # hour_ago = datetime.now() - timedelta(minutes=10)
 
         # live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
+        await ctx.defer()
         live_maps = [] # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
@@ -142,7 +179,7 @@ class MapList(Cog):
         embed.add_field(name="Map Queue", value=map_names, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
-        await ctx.send(embed=embed)
+        await ctx.respond(embed=embed)
 
     async def add_map(self, ctx, message, link, notes="", old_map=None):
         # If not link; use fuzzy search
