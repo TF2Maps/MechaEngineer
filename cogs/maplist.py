@@ -192,7 +192,6 @@ class MapList(Cog):
 
             if not link:
                 await message.edit(content=f"{error} Could not find a download by the name. Try using a link instead.")
-                await ctx.send_help(ctx.command)
                 return
             else:
                 if len(link) > 1:
@@ -204,7 +203,6 @@ class MapList(Cog):
         link = await self.parse_link(link)
         if not link:
             await message.edit(content=f"{error} No valid link found.")
-            await ctx.send_help(ctx.command)
             return
 
         await message.edit(content=f"{loading} Found link: {link}")
@@ -279,7 +277,7 @@ class MapList(Cog):
             # Example: https://tf2maps.net/downloads/pullsnake.11004/
             if re.match("^/(downloads|threads)/[\w\-]+\.\d+\/?$", parsed_url.path):
                 async with httpx.AsyncClient() as client:
-                    response = await client.get(link)
+                    response = await client.get(link, follow_redirects=True)
                 soup = BeautifulSoup(response.text, 'html.parser')
                 href = soup.select(".button--icon--download")[0].get("href")
 

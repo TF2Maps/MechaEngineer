@@ -3,6 +3,7 @@ pass
 
 # 3rd Party Imports
 from discord.ext.commands import Cog, Cooldown, slash_command
+import discord
 import databases
 
 # Local Imports
