@@ -200,7 +200,12 @@ class MapList(Cog):
                 link = link[0]
 
         # Find map download in link
-        link = await self.parse_link(link)
+        try:
+            link = await self.parse_link(link)
+        except IndexError:
+            await message.edit(content=f"{error} External Links not currently supported. Upload your map directly to the website.")
+            return
+
         if not link:
             await message.edit(content=f"{error} No valid link found.")
             return
