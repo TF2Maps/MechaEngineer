@@ -253,13 +253,20 @@ class MapList(Cog):
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
 
+        if not contains_version_number(map_name):
+            version_warning = f"\n\n{warning} Your map seems to not include a version number. You must include a version number for your map to be tested."\
+                "\nThe map was still uploaded. You can use `/update` to replace it with a verision that includes a proper version number. If you did "\
+                "include one, disregard this message"
+        else:
+            version_warning = ""
+
         if old_map:
             old_map.url = link
             old_map.map = map_name
             if notes:
                 old_map.notes = notes
             await old_map.save()
-            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!{version_warning}")
         else:
             await Maps.create(
                 discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
@@ -270,7 +277,7 @@ class MapList(Cog):
                 notes=notes,
                 added=datetime.now()
             )
-            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!{version_warning}")
 
 
     @staticmethod

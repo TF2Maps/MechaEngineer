@@ -40,3 +40,6 @@ def readable_time(elapsed):
         readable += str(minutes) + " minutes "
 
     return readable
+
+def contains_version_number(map_name: str) -> bool:
+    return bool(re.search(r"\d|final|rc|beta|alpha"))
