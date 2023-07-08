@@ -25,9 +25,9 @@ def main():
     bot.help_command = EmbedHelpCommand()
 
     # Load Plugins
-    #bot.add_cog(Search())
-    #bot.add_cog(Tags())
-    #bot.add_cog(MapList())
+    bot.add_cog(Search())
+    bot.add_cog(Tags())
+    bot.add_cog(MapList())
     bot.add_cog(Servers(bot))
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
