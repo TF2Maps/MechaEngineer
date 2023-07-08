@@ -25,12 +25,13 @@ def main():
     bot.help_command = EmbedHelpCommand()
 
     # Load Plugins
-    bot.add_cog(Search())
-    bot.add_cog(Tags())
-    bot.add_cog(MapList())
+    #bot.add_cog(Search())
+    #bot.add_cog(Tags())
+    #bot.add_cog(MapList())
     bot.add_cog(Servers(bot))
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
+    bot.add_cog(Verification())
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())

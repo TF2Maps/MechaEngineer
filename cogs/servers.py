@@ -6,7 +6,7 @@ from datetime import datetime
 import discord
 from discord.ext import tasks
 from discord.ext.commands import Cog, slash_command
-import valve.source.a2s
+#import valve.source.a2s
 
 # Local Imports
 from utils import load_config, get_srcds_server_info, cog_error_handler
@@ -28,6 +28,7 @@ class Servers(Cog):
         channel = self.bot.get_channel(config.server_embed_channel_id)
         self.us_server_embed_message = channel.get_partial_message(config.us_server_message_id)
         self.eu_server_embed_message = channel.get_partial_message(config.eu_server_message_id)
+        self.us2_server_embed_message = channel.get_partial_message(config.us2_server_message_id)
         self.server_embed.start()
 
     @tasks.loop(seconds=config.server_embed_interval)
@@ -47,6 +48,14 @@ class Servers(Cog):
         except socket.timeout:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
             await self.eu_server_embed_message.edit(embed=embed)
+
+        try:
+            server, players = get_srcds_server_info("us2.tf2maps.net")
+            embed = await self.get_server_embed(server, "us2.tf2maps.net", player_data=players)
+            await self.us2_server_embed_message.edit(embed=embed)
+        except socket.timeout:
+            embed = await self.get_server_offline_embed("us2.tf2maps.net")
+            await self.us2_server_embed_message.edit(embed=embed)
 
 
     @slash_command(
@@ -68,6 +77,24 @@ class Servers(Cog):
             embed = await self.get_server_offline_embed("us.tf2maps.net")
             await ctx.respond(embed=embed)
 
+    @slash_command(
+        name="us2", 
+        description=config.us2server.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.us2server.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def us2server(self, ctx):
+        await ctx.defer()
+        try:
+            server, players = get_srcds_server_info("us2.tf2maps.net")
+            embed = await self.get_server_embed(server, "us2.tf2maps.net")
+            await ctx.respond(embed=embed)
+        except socket.timeout:
+            embed = await self.get_server_offline_embed("us2.tf2maps.net")
+            await ctx.respond(embed=embed)
 
     @slash_command(
         name="eu", 
