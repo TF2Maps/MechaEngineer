@@ -15,7 +15,6 @@ from utils.discord import not_nobot_role_slash, roles_required
 
 global_config = load_config()
 config = global_config.cogs.servers
-sftp_config = global_config.sftp
 
 
 class Servers(Cog):
@@ -31,9 +30,6 @@ class Servers(Cog):
         self.eu_server_embed_message = channel.get_partial_message(config.eu_server_message_id)
         self.us2_server_embed_message = channel.get_partial_message(config.us2_server_message_id)
         self.server_embed.start()
-
-        #for starting a new embed
-        #await channel.send("** **")
 
     @tasks.loop(seconds=config.server_embed_interval)
     async def server_embed(self):
@@ -149,7 +145,7 @@ class Servers(Cog):
             if not alive:
                 await ctx.respond(f"{warning} No map tests are currently happening right now. Check back later")
         except socket.timeout:
-            await ctx.respond('A server is offline. Please use /eu or /us for the time being.')
+            await ctx.respond('A server is offline. Please use !eu or !us for the time being.')
 
     @staticmethod
     async def get_server_embed(server_data, host, player_data=None):
@@ -162,7 +158,7 @@ class Servers(Cog):
             thumbnail = config.eu_server_thumbnail
 
         embed = discord.Embed(
-            description=f"**Link: {sftp_config[str(host).replace('.','_')].game_url} \n IP: {sftp_config[str(host).replace('.','_')].ip} \n STV: {sftp_config[str(host).replace('.','_')].stv_url} **",
+            description=f"**steam://connect/{host}:27015**",
             timestamp=datetime.now()
         )
         embed.set_author(name=server_data.server_name, icon_url=global_config.icons.tf2m_icon)
