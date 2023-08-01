@@ -38,30 +38,43 @@ class Servers(Cog):
     @tasks.loop(seconds=config.server_embed_interval)
     async def server_embed(self):
         try:
-            server, players = get_srcds_server_info("us.tf2maps.net")
-            embed = await self.get_server_embed(server, "us.tf2maps.net", player_data=players)
+            server, players = get_srcds_server_info("us.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "us.tf2maps.net", 'imp', player_data=players)
             await self.us_server_embed_message.edit(embed=embed)
         except socket.timeout:
-            embed = await self.get_server_offline_embed("us.tf2maps.net")
-            await self.us_server_embed_message.edit(embed=embed)
+            try:
+                server, players = get_srcds_server_info("us.tf2maps.net", 27016)
+                embed = await self.get_server_embed(server, "us.tf2maps.net", 'mvm', player_data=players)
+                await self.eu_server_embed_message.edit(embed=embed)
+            except socket.timeout:
+                embed = await self.get_server_offline_embed("us.tf2maps.net")
+                await self.eu_server_embed_message.edit(embed=embed)
 
         try:
-            server, players = get_srcds_server_info("eu.tf2maps.net")
-            embed = await self.get_server_embed(server, "eu.tf2maps.net", player_data=players)
+            server, players = get_srcds_server_info("eu.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "eu.tf2maps.net", 'imp', player_data=players)
             await self.eu_server_embed_message.edit(embed=embed)
         except socket.timeout:
-            embed = await self.get_server_offline_embed("eu.tf2maps.net")
-            await self.eu_server_embed_message.edit(embed=embed)
+            try:
+                server, players = get_srcds_server_info("eu.tf2maps.net", 27016)
+                embed = await self.get_server_embed(server, "eu.tf2maps.net", 'mvm', player_data=players)
+                await self.eu_server_embed_message.edit(embed=embed)
+            except socket.timeout:
+                embed = await self.get_server_offline_embed("eu.tf2maps.net")
+                await self.eu_server_embed_message.edit(embed=embed)
 
         try:
-            server, players = get_srcds_server_info("us2.tf2maps.net")
-            embed = await self.get_server_embed(server, "us2.tf2maps.net", player_data=players)
+            server, players = get_srcds_server_info("us2.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "us2.tf2maps.net", 'imp', player_data=players)
             await self.us2_server_embed_message.edit(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("us2.tf2maps.net")
             await self.us2_server_embed_message.edit(embed=embed)
 
 
+    # ------------------
+    # US Region Commands
+    # ------------------
     @slash_command(
         name="us", 
         description=config.usserver.help, 
@@ -74,8 +87,27 @@ class Servers(Cog):
     async def usserver(self, ctx):
         await ctx.defer()
         try:
-            server, players = get_srcds_server_info("us.tf2maps.net")
-            embed = await self.get_server_embed(server, "us.tf2maps.net")
+            server, players = get_srcds_server_info("us.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "us.tf2maps.net", 'imp')
+            await ctx.respond(embed=embed)
+        except socket.timeout:
+            embed = await self.get_server_offline_embed("us.tf2maps.net")
+            await ctx.respond(embed=embed)
+
+    @slash_command(
+        name="usmvm", 
+        description=config.usmvm.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.usmvm.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def usmvm(self, ctx):
+        await ctx.defer()
+        try:
+            server, players = get_srcds_server_info("us.tf2maps.net", 27016)
+            embed = await self.get_server_embed(server, "us.tf2maps.net", 'mvm')
             await ctx.respond(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("us.tf2maps.net")
@@ -93,13 +125,17 @@ class Servers(Cog):
     async def us2server(self, ctx):
         await ctx.defer()
         try:
-            server, players = get_srcds_server_info("us2.tf2maps.net")
-            embed = await self.get_server_embed(server, "us2.tf2maps.net")
+            server, players = get_srcds_server_info("us2.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "us2.tf2maps.net", 'imp')
             await ctx.respond(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("us2.tf2maps.net")
             await ctx.respond(embed=embed)
 
+
+    # ------------------
+    # EU Region Commands
+    # ------------------
     @slash_command(
         name="eu", 
         description=config.euserver.help, 
@@ -109,16 +145,34 @@ class Servers(Cog):
             not_nobot_role_slash()
         ]
     )
-    async def eu(self, ctx):
+    async def euserver(self, ctx):
         await ctx.defer()
         try:
-            server, players = get_srcds_server_info("eu.tf2maps.net")
-            embed = await self.get_server_embed(server, "eu.tf2maps.net")
+            server, players = get_srcds_server_info("eu.tf2maps.net", 27015)
+            embed = await self.get_server_embed(server, "eu.tf2maps.net", 'imp')
             await ctx.respond(embed=embed)
         except socket.timeout:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
             await ctx.respond(embed=embed)
-
+    
+    @slash_command(
+        name="eumvm", 
+        description=config.eumvm.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.eumvm.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def eumvm(self, ctx):
+        await ctx.defer()
+        try:
+            server, players = get_srcds_server_info("eu.tf2maps.net", 27016)
+            embed = await self.get_server_embed(server, "eu.tf2maps.net", 'mvm')
+            await ctx.respond(embed=embed)
+        except socket.timeout:
+            embed = await self.get_server_offline_embed("eu.tf2maps.net")
+            await ctx.respond(embed=embed)
 
     @slash_command(
         name="active", 
@@ -134,15 +188,15 @@ class Servers(Cog):
         alive = False
  
         try:
-            us_server, us_players = get_srcds_server_info("us.tf2maps.net")
+            us_server, us_players = get_srcds_server_info("us.tf2maps.net", 27015)
             if us_server.player_count > config.active.player_threshold:
-                embed = await self.get_server_embed(us_server, "us.tf2maps.net")
+                embed = await self.get_server_embed(us_server, "us.tf2maps.net", 'imp')
                 await ctx.respond(embed=embed)
                 alive = True
 
-            eu_server, eu_players = get_srcds_server_info("eu.tf2maps.net")
+            eu_server, eu_players = get_srcds_server_info("eu.tf2maps.net", 27015)
             if eu_server.player_count > config.active.player_threshold:
-                embed = await self.get_server_embed(eu_server, "eu.tf2maps.net")
+                embed = await self.get_server_embed(eu_server, "eu.tf2maps.net", 'imp')
                 await ctx.respond(embed=embed)
                 alive = True
 
@@ -152,7 +206,7 @@ class Servers(Cog):
             await ctx.respond('A server is offline. Please use /eu or /us for the time being.')
 
     @staticmethod
-    async def get_server_embed(server_data, host, player_data=None):
+    async def get_server_embed(server_data, host, type, player_data=None):
         player_count = f"{server_data.player_count}/{server_data.max_players}"
 
         thumbnail = None
@@ -161,8 +215,10 @@ class Servers(Cog):
         elif host.startswith("eu"):
             thumbnail = config.eu_server_thumbnail
 
+        server_obj = server_info[str(host).replace('.','_')]
+
         embed = discord.Embed(
-            description=f"**Link: {server_info[str(host).replace('.','_')].game_url} \n IP: {server_info[str(host).replace('.','_')].ip} \n STV: {server_info[str(host).replace('.','_')].stv_url} **",
+            description=f"**Link: {server_obj[type].game_url} \n IP: {server_obj[type].ip}:{server_obj[type].port} \n STV: {server_obj[type].stv_url} **",
             timestamp=datetime.now()
         )
         embed.set_author(name=server_data.server_name, icon_url=global_config.icons.tf2m_icon)
