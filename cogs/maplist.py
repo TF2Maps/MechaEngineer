@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import shutil
 import bz2
 import hashlib
+import zipfile
 
 # 3rd Party Imports
 import asyncssh
@@ -33,6 +34,170 @@ config = global_config.cogs.maplist
 class MapList(Cog):
     cog_command_error = cog_error_handler
 
+    @slash_command(
+        name="uploadmvm", 
+        description=config.uploadmvm.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.uploadmvm.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def uploadmvm(self, ctx, file: discord.Attachment):
+        await ctx.defer()
+
+        # Make temp dir
+        message = await ctx.respond(f"{loading} Making temp dir for zip")
+        
+        tempdir = tempfile.mkdtemp()
+        tempfilepath = os.path.join(tempdir, file.filename)
+
+        #save zip to /tmp/randomletters/zipname.zip
+        await message.edit(content=f"{loading} Downloading `{file.filename}`...")
+        await file.save(tempfilepath)
+
+        # Unzip
+        await message.edit(content=f"{loading} Unzipping `{file.filename}`...")
+        with zipfile.ZipFile(tempfilepath, "r") as zip:
+            zip.extractall(tempdir)
+
+        upload_futures = []
+
+        # Get all BSP files contained within
+        for file in os.listdir(tempdir):
+            filepath = os.path.join(tempdir, file)
+
+            if not filepath.endswith('.zip'):
+
+                #lets try something new NOW THE FILES CAN BE ANYWHERE
+                for dirname, dirs, files in os.walk(filepath):
+                    for filename in files:
+                        filename_without_extension, extension = os.path.splitext(filename)
+                        if extension == '.bsp':
+                            bsp_filepath = dirname + '/' + filename
+                            
+                            # Compress with bzip2
+                            await message.edit(content=f"{loading} Compressing `{filename}`...")
+                            compressed_file = compress_file(os.path.join(dirname, filename))
+
+                            upload_futures.extend([ 
+                                upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
+                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                            ])
+                        
+                        #population files
+                        if extension == '.pop':
+                            pop_filepath = dirname + '/' + filename
+                            upload_futures.extend([ 
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.poppath),
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.poppath),
+                            ])     
+
+                        #stuff for huds
+                        if extension == '.res':
+                            pop_filepath = dirname + '/' + filename
+                            upload_futures.extend([ 
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                            ])
+
+                        #particle manifests
+                        if extension == '.txt':
+                            if dirname.endswith('particles.txt'):
+                                pop_filepath = dirname + '/' + filename
+                                upload_futures.extend([ 
+                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                                ])                           
+
+                        #the navigation file
+                        if extension == '.nav':
+                            nav_filepath = dirname + '/' + filename
+                            upload_futures.extend([ 
+                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.navpath),
+                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.navpath),
+                            ])   
+
+                        #we should check if it's in materials/hud/
+                        if extension == '.vmt':
+                            if dirname.endswith('/materials/hud/'):
+                                vmt_filepath = dirname + '/' + filename
+                                upload_futures.extend([ 
+                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
+                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
+                                ])
+
+                        if extension == '.vtf':
+                            if dirname.endswith('/materials/hud/'):
+                                vtf_filepath = dirname + '/' + filename
+                                upload_futures.extend([ 
+                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
+                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
+                                ])
+
+        # Upload to us, eu and redirect
+        await message.edit(content=f"{loading} Uploading maps...")
+        await asyncio.gather(*upload_futures)
+        await message.edit(content=f"{success} All maps uploaded successfully!")
+
+                #upload to redirect eumvm usmvm tf/maps
+            
+            #grab .pop files put in tf/scripts/population
+
+            #grab nav and put in tf/maps
+
+            #grab materials folder ???
+
+        print("end of command")
+
+    @slash_command(
+        name="uploadzip", 
+        description=config.uploadzip.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.uploadzip.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def uploadzip(self, ctx, file: discord.Attachment):
+        await ctx.defer()
+
+        # Make temp dir
+        message = await ctx.respond(f"{loading} Making temp dir for zip")
+
+        tempdir = tempfile.mkdtemp()
+        tempfilepath = os.path.join(tempdir, file.filename)
+
+        # Download Zip from discord into temp dir
+        await message.edit(content=f"{loading} Downloading `{file.filename}`...")
+        await file.save(tempfilepath)
+        
+        # Unzip maps
+        await message.edit(content=f"{loading} Unzipping `{file.filename}`...")
+        with zipfile.ZipFile(tempfilepath, "r") as zip:
+            zip.extractall(tempdir)
+        
+        upload_futures = []
+
+        # Get all BSP files contained within
+        for file in os.listdir(tempdir):
+            filepath = os.path.join(tempdir, file)
+            if file.endswith(".bsp"):
+                # Compress with bzip2
+                await message.edit(content=f"{loading} Compressing `{file}`...")
+                compressed_file = compress_file(os.path.join(tempdir, file))
+
+                upload_futures.extend([ 
+                    upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
+                    upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
+                    upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
+                ])
+
+        # Upload to us, eu and redirect
+        await message.edit(content=f"{loading} Uploading maps...")
+        await asyncio.gather(*upload_futures)
+        await message.edit(content=f"{success} All maps uploaded successfully!")
 
     @slash_command(
         name="uploadcheck", 
@@ -162,6 +327,10 @@ class MapList(Cog):
         live_maps = [] # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
+        if len(maps) > 35:
+            await ctx.respond(f"There's {len(maps)} maps... https://bot.tf2maps.net/maplist")
+            return
+
         map_names = ""
         for item in maps:
             if item.map in [i.map for i in live_maps]:
@@ -282,18 +451,19 @@ class MapList(Cog):
             # Example: https://tf2maps.net/downloads/pullsnake.11004/
             if re.match("^/(downloads|threads)/[\w\-]+\.\d+\/?$", parsed_url.path):
                 async with httpx.AsyncClient() as client:
-                    response = await client.get(link, follow_redirects=True)
+                    response = await client.get(link, follow_redirects=True, timeout=30)
                 soup = BeautifulSoup(response.text, 'html.parser')
                 href = soup.select(".button--icon--download")[0].get("href")
 
-                matched_link = f"https://tf2maps.net/{href}"
+                #matched_link = f"https://tf2maps.net/{href}"
+                matched_link = f"https://tf2maps.net{href}"
 
             # Example: https://tf2maps.net/downloads/pullsnake.11004/download?version=29169
             elif re.match("^/downloads/\w+\.\d+/download$", parsed_url.path):
                 matched_link = link
 
         async with httpx.AsyncClient() as client:
-            response = await client.head(link, follow_redirects=True)
+            response = await client.head(link, follow_redirects=True, timeout=30)
             redir = urlparse(str(response.url))
 
             # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
