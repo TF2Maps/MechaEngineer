@@ -149,8 +149,6 @@ class MapList(Cog):
 
             #grab materials folder ???
 
-        print("end of command")
-
     @slash_command(
         name="uploadzip", 
         description=config.uploadzip.help, 
