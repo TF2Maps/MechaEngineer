@@ -433,7 +433,7 @@ class MapList(Cog):
             await message.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
-        #temp block dropbox links
+        #stopped working, blocking for now
         if str(link).startswith('https://www.dropbox.com' or 'https://dropbox.com'):
             #await dropbox_download(link, filepath)
             await message.edit(content=f"{error} No valid link found. Make sure it's uploaded to TF2maps.net.")
@@ -553,15 +553,15 @@ class MapList(Cog):
                 response = await client.get(link)
             redir = urlparse(str(response.url))
 
-            
             # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
             if redir.netloc == "dropbox.com" or redir.netloc == "www.dropbox.com":
                 
                 matched_link = str(response.url).replace("dl=0", "dl=1")
             
-            if redir.netloc == 'cdn.discordapp.com':
-                if str(link).startswith('https://cdn.discordapp.com/attachments/'):
-                    return link
+            #Stopped working
+            #if redir.netloc == 'cdn.discordapp.com':
+            #    if str(link).startswith('https://cdn.discordapp.com/attachments/'):
+            #        return link
 
 
 
