@@ -32,6 +32,7 @@ def main():
     bot.add_cog(VIP())
     bot.add_cog(Misc(bot))
     bot.add_cog(Verification())
+    bot.add_cog(Hosts())
 
     # Setup Asyncio Loop
     bot.loop.add_signal_handler(signal.SIGINT, lambda: bot.loop.stop())

@@ -39,6 +39,9 @@ class Misc(Cog):
 
         await self.bot.change_presence(activity=discord.Game(name=f"{game_name}"))
 
+        #server_channel = self.bot.get_channel(1127280330710192281)
+        #await server_channel.send('** **')
+
     @slash_command(
         name="imp", 
         description=config.imp.help, 
@@ -84,3 +87,21 @@ class Misc(Cog):
     async def ping(self, ctx):
         await ctx.respond(f"Pong")
 
+    @slash_command(
+        name="rules", 
+        description=config.rules.help, 
+        guild_ids=global_config.bot_guild_ids,
+        checks=[
+            roles_required(config.rules.role_names),
+            not_nobot_role_slash()
+        ]
+    )
+    async def rules(self, ctx):
+        embed = discord.Embed(
+            description=f"{config.rules.description}"
+        )
+
+        embed.add_field(name=f"", value=f"{config.rules.the_rules}", inline=False)
+
+        embed.set_footer(text=global_config.bot_footer)
+        await ctx.respond(embed=embed, ephemeral=True)

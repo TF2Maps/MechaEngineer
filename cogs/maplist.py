@@ -9,6 +9,10 @@ import shutil
 import bz2
 import hashlib
 import zipfile
+import aiohttp
+import time
+import urllib3
+import requests
 
 # 3rd Party Imports
 import asyncssh
@@ -17,13 +21,15 @@ from discord.ext.commands import Cog, slash_command
 import discord
 import httpx
 from tortoise.expressions import Q
+import botocore
 
 # Local Imports
 from utils import load_config, cog_error_handler, get_srcds_server_info
 from utils.emojis import success, warning, error, info, loading
-from utils.files import compress_file, download_file, get_download_filename, upload_to_gameserver, upload_to_redirect, remote_file_exists, redirect_file_exists, check_redirect_hash
+from utils.files import compress_file, download_file, get_download_filename, upload_to_gameserver, upload_to_redirect, remote_file_exists, redirect_file_exists, check_redirect_hash, dropbox_download, remote_file_size
 from utils.search import search_downloads, ForumUserNotFoundException
 from utils.discord import not_nobot_role_slash, roles_required
+from utils.hdr_check import bsp_validate_hdr
 
 from models import Maps
 
@@ -141,13 +147,6 @@ class MapList(Cog):
         await asyncio.gather(*upload_futures)
         await message.edit(content=f"{success} All maps uploaded successfully!")
 
-                #upload to redirect eumvm usmvm tf/maps
-            
-            #grab .pop files put in tf/scripts/population
-
-            #grab nav and put in tf/maps
-
-            #grab materials folder ???
 
     @slash_command(
         name="uploadzip", 
@@ -187,7 +186,7 @@ class MapList(Cog):
                 compressed_file = compress_file(os.path.join(tempdir, file))
 
                 upload_futures.extend([ 
-                    upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
+                    #upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
                     upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
                     upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
                 ])
@@ -209,25 +208,54 @@ class MapList(Cog):
     async def uploadcheck(self, ctx, map_name):
         await ctx.defer()
 
-        us, eu, redirect = await asyncio.gather(
+        try:
+            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            master_redirect = await redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
+        except requests.exceptions.Timeout as e:
+            master_redirect = False
+        except Exception as e:
+            master_redirect = False
+
+        us_size, eu_size, us_redir_size, eu_redir_size = await asyncio.gather(
+            remote_file_size(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
+            remote_file_size(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
+            remote_file_size(f"{map_name}.bsp.bz2", **global_config.sftp.us_fastdl),
+            remote_file_size(f"{map_name}.bsp.bz2", **global_config.sftp.eu_fastdl)
+        )
+
+        us, eu, us_redirect, eu_redirect = await asyncio.gather(
             remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
             remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
-            redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
+            remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.us_fastdl),
+            remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.eu_fastdl)
         )
 
         output = ""
         if us:
-            output += f"{success} US Server\n"
+            output += f"{success} US Server - {round(us_size, 2)}MB\n"
         else:
             output += f"{error} US Server\n"
         if eu:
-            output += f"{success} EU Server\n"
+            output += f"{success} EU Server - {round(eu_size, 2)}MB\n"
         else:
             output += f"{error} EU Server\n"
-        if redirect:
-            output += f"{success} Redirect Server"
+        if us_redirect:
+            output += f"{success} US Redirect Server - {round(us_redir_size, 2)}MB\n"
         else:
-            output += f"{error} Redirect Server"
+            output += f"{error} US Redirect Server\n"
+        if eu_redirect:
+            output += f"{success} EU Redirect Server - {round(eu_redir_size, 2)}MB\n"
+        else:
+            output += f"{error} EU Redirect Server\n"
+
+        try:
+            master_redirect = master_redirect[0]
+        except:
+            master_redirect = False
+        if master_redirect:
+            output += f"{success} Master Redirect Server\n"
+        else:
+            output += f"{error} Master Redirect Server\n"
 
         embed = discord.Embed(description=output)
         embed.set_author(name=f"Map Upload Status")
@@ -380,43 +408,102 @@ class MapList(Cog):
         await message.edit(content=f"{loading} Found link: {link}")
 
         # Get map info
-        filename = await get_download_filename(link)
-        filepath = os.path.join(tempfile.mkdtemp(), filename)
-        map_name = re.sub("\.bsp$", "", filename)
+        try:
+            filename = await get_download_filename(link)
+            filepath = os.path.join(tempfile.mkdtemp(), filename)
+            map_name = re.sub("\.bsp$", "", filename)
+        except TypeError as e:
+            print(e)
+            await message.edit(content=f"{warning} TypeError: Unable to be download! Is the site up? Is it an external download? Is there more than one download choice?")
+            return
         
         # Must be a BSP
         if not re.search("\.bsp$", filename):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
             return
 
+        #must not contain special characters
+        if re.search("[^A-Z_a-z0-9]", map_name):
+            await message.edit(content=f"{warning} `{map_name}.bsp` contains special characters! Aborting!")
+            return
+        
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
         if len(already_in_queue) > 0 and not old_map:
             await message.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
+        #temp block dropbox links
+        if str(link).startswith('https://www.dropbox.com' or 'https://dropbox.com'):
+            #await dropbox_download(link, filepath)
+            await message.edit(content=f"{error} No valid link found. Make sure it's uploaded to TF2maps.net.")
+            return
+
         # Download the map
         await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
-        await download_file(link, filepath)
+
+        if str(link).startswith('https://www.dropbox.com' or 'https://dropbox.com'):
+            #await dropbox_download(link, filepath)
+
+            filesize = os.stat(filepath)
+            if filesize.st_size < 900000:
+                await message.edit(content=f"{error} `{filename}` is not larger than 1mb, is it able to be downloaded?")
+                return
+        else:
+            await download_file(link, filepath)
         
+        #Check map for HDR lighting issues
+        print(bsp_validate_hdr(filepath))
+        bsp_error = bsp_validate_hdr(filepath)
+        if bsp_error[0] == False:
+            await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
+            return
+        
+        print("passed")
+        return
+
         # Compress file for redirect
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
 
-        # Ensure map has the same MD5 sum as an existing one
-        if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
-            if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
-                await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
-                return
+        #getting stuck here
+        #except ServerTimeoutError:
+        try:
+            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            # Ensure map has the same MD5 sum as an existing one
+            if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
+                if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
+                    await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                    return
+        except requests.exceptions.Timeout as e:
+            await message.edit(content=f"{warning} Cannot check md5 hash, S3 is down. Uploading anyways, this may cause map differs errors...")
+            time.sleep(5)
+            print(e)
+        except Exception as e:
+            print(e)
+            await message.edit(content=f"{warning} Cannot check md5 hash, S3 is down (something else happened too). Uploading anyways, this may cause map differs errors...")
+            
 
         # Upload to servers
-        await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
+        
+        try:
+            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
+            await asyncio.gather(
+                upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+            )
+        except requests.exceptions.Timeout as e:
+            await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
+            print(e)
+        except Exception as e:
+            print(e)
+            await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
+
         await asyncio.gather(
             upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
-            upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net),
-            upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+            upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
         )
-
+            
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
 
@@ -429,7 +516,7 @@ class MapList(Cog):
             await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
         else:
             await Maps.create(
-                discord_user_handle=f"{ctx.author.name}#{ctx.author.discriminator}",
+                discord_user_handle=f"{ctx.author.display_name}",
                 discord_user_id=ctx.author.id,
                 map=map_name,
                 url=link,
@@ -461,14 +548,31 @@ class MapList(Cog):
                 matched_link = link
 
         async with httpx.AsyncClient() as client:
-            response = await client.head(link, follow_redirects=True, timeout=30)
+            
+            if str(link).startswith("https://tf2maps.net"):
+                response = await client.head(link, follow_redirects=True, timeout=30)
+            #dropbox
+            else:
+                response = await client.get(link)
             redir = urlparse(str(response.url))
 
+            
             # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
             if redir.netloc == "dropbox.com" or redir.netloc == "www.dropbox.com":
+                
                 matched_link = str(response.url).replace("dl=0", "dl=1")
+            
+            if redir.netloc == 'cdn.discordapp.com':
+                if str(link).startswith('https://cdn.discordapp.com/attachments/'):
+                    return link
+
+
 
         return matched_link
+
+        # TODO discord
+        # https://cdn.discordapp.com/attachments/556127848998502411/1138620878263963719/cp_fortezza_b1.zip
+        # https://cdn.discordapp.com/attachments/1117898068596113428/1138631053137944656/cp_baxter_a3.bsp
 
         # TODO Direct link
         # Example: http://maps.tf2.games/maps/jump_pyro_b1.bsp
