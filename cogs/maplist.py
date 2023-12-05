@@ -458,9 +458,6 @@ class MapList(Cog):
         if bsp_error[0] == False:
             await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
             return
-        
-        print("passed")
-        return
 
         # Compress file for redirect
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
