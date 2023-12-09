@@ -88,7 +88,7 @@ class Servers(Cog):
     async def usserver(self, ctx):
         await ctx.defer()
         try:
-            server, players = get_srcds_server_info("us.tf2maps.net", 27015)
+            server, players = await get_srcds_server_info("us.tf2maps.net", 27015)
             embed = await self.get_server_embed(server, "us.tf2maps.net", 'imp')
             await ctx.respond(embed=embed)
         except socket.timeout:
@@ -107,7 +107,7 @@ class Servers(Cog):
     async def usmvm(self, ctx):
         await ctx.defer()
         try:
-            server, players = get_srcds_server_info("us.tf2maps.net", 27016)
+            server, players = await get_srcds_server_info("us.tf2maps.net", 27016)
             embed = await self.get_server_embed(server, "us.tf2maps.net", 'mvm')
             await ctx.respond(embed=embed)
         except socket.timeout:
