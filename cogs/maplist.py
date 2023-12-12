@@ -147,7 +147,6 @@ class MapList(Cog):
         await asyncio.gather(*upload_futures)
         await message.edit(content=f"{success} All maps uploaded successfully!")
 
-
     @slash_command(
         name="uploadzip", 
         description=config.uploadzip.help, 
@@ -186,7 +185,8 @@ class MapList(Cog):
                 compressed_file = compress_file(os.path.join(tempdir, file))
 
                 upload_futures.extend([ 
-                    #upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
+
+                    upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
                     upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
                     upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
                 ])
