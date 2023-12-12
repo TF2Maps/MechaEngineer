@@ -55,18 +55,22 @@ async def search_with_bing(site, term, exclude=[]):
     plus_term = "%20".join(term.split(" "))
     exclude_sites = "%20".join([f"-site%3A{site}" for site in exclude])
     search_query = f"https://www.bing.com/search?q=site%3A{site}%20{exclude_sites}%20{plus_term}"
+    print(search_query)
 
     async with httpx.AsyncClient() as client:
         response = await client.get(search_query)
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    links = soup.select("ol#b_results > li.b_algo > h2 > a")
+    #old: ol#b_results > li.b_algo > h2 > a
+    #new: ol#b_results > li.b_algo h2 > a
+    #new titles only: ol#b_results > li.b_algo .b_title > h2 > a
+    links = soup.select("ol#b_results > li.b_algo .b_title > h2 > a")
 
     return [link['href'] for link in links]
 
 
-def get_srcds_server_info(host, port=27015):
-    server = a2s.info((host, port))
-    players = a2s.players((host, port))
+async def get_srcds_server_info(host, port=27015):
+    server = await a2s.ainfo((host, port))
+    players = await a2s.aplayers((host, port))
 
     return (server, players)

@@ -5,3 +5,4 @@ from .vip import VIP
 from .servers import Servers
 from .misc import Misc
 from .verification import Verification
+from .hosts import Hosts
