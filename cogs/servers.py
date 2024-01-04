@@ -88,10 +88,10 @@ class Servers(Cog):
     async def usserver(self, ctx):
         await ctx.defer()
         try:
-            server, players = await get_srcds_server_info("us.tf2maps.net", 27015)
+            server, players = get_srcds_server_info("us.tf2maps.net", 27015)
             embed = await self.get_server_embed(server, "us.tf2maps.net", 'imp')
             await ctx.respond(embed=embed)
-        except socket.timeout:
+        except asyncio.TimeoutError:
             embed = await self.get_server_offline_embed("us.tf2maps.net")
             await ctx.respond(embed=embed)
 
@@ -107,10 +107,10 @@ class Servers(Cog):
     async def usmvm(self, ctx):
         await ctx.defer()
         try:
-            server, players = await get_srcds_server_info("us.tf2maps.net", 27016)
+            server, players = get_srcds_server_info("us.tf2maps.net", 27016)
             embed = await self.get_server_embed(server, "us.tf2maps.net", 'mvm')
             await ctx.respond(embed=embed)
-        except socket.timeout:
+        except asyncio.TimeoutError:
             embed = await self.get_server_offline_embed("us.tf2maps.net")
             await ctx.respond(embed=embed)
 
@@ -132,7 +132,7 @@ class Servers(Cog):
             server, players = await get_srcds_server_info("eu.tf2maps.net", 27015)
             embed = await self.get_server_embed(server, "eu.tf2maps.net", 'imp')
             await ctx.respond(embed=embed)
-        except socket.timeout:
+        except asyncio.TimeoutError:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
             await ctx.respond(embed=embed)
     
@@ -151,7 +151,7 @@ class Servers(Cog):
             server, players = await get_srcds_server_info("eu.tf2maps.net", 27016)
             embed = await self.get_server_embed(server, "eu.tf2maps.net", 'mvm')
             await ctx.respond(embed=embed)
-        except socket.timeout:
+        except asyncio.TimeoutError:
             embed = await self.get_server_offline_embed("eu.tf2maps.net")
             await ctx.respond(embed=embed)
 
@@ -183,7 +183,7 @@ class Servers(Cog):
 
             if not alive:
                 await ctx.respond(f"{warning} No map tests are currently happening right now. Check back later")
-        except socket.timeout:
+        except asyncio.TimeoutError:
             await ctx.respond('A server is offline. Please use /eu or /us for the time being.')
 
     @staticmethod
