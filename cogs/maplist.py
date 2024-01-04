@@ -422,6 +422,11 @@ class MapList(Cog):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
             return
 
+        #Must not contain uppercase letters
+        if re.search("[A-Z]", map_name):
+            await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting!")
+            return
+        
         #must not contain special characters
         if re.search("[^A-Z_a-z0-9]", map_name):
             await message.edit(content=f"{warning} `{map_name}.bsp` contains special characters! Aborting!")
