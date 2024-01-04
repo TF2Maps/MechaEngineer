@@ -70,8 +70,13 @@ def bsp_validate_hdr(name):
                     return [False, f"Error: Map decompression failed: {e}"]
             else:
                 entity_data = entity_lump
-                
-            entity_data = entity_data.decode('utf-8')
+            
+            #UnicodeDecodeError
+            try:
+                #entity_data = entity_data.decode('utf-8')
+                entity_data = entity_data.decode('cp1252')
+            except UnicodeDecodeError as e:
+                return [False, f"Error: Something failed in HDR: {e}"]
             
             # Parse the entities
             chunks = re.findall(r'\{[^}]*\}', entity_data)
@@ -111,7 +116,10 @@ def bsp_validate_hdr(name):
             if not tonemap_controller:
                 return [False, "Error: Map has HDR lighting but no env_tonemap_controller"]
             else:
-                tonemap_controller_name = next(pair[1] for pair in tonemap_controller[0] if pair[0] == 'targetname')
+                try:
+                    tonemap_controller_name = next((pair[1] for pair in tonemap_controller[0] if pair[0] == 'targetname'), 'env_tonemap_controller')
+                except RuntimeError as e:
+                    return [False, f'Error: Tonemap controller has no name? {e}']
                 
                 # Check for connections to the env_tonemap_controller
                 for entity in entities:
