@@ -61,6 +61,7 @@ async def search_with_bing(site, term, exclude=[]):
         response = await client.get(search_query)
 
     soup = BeautifulSoup(response.text, 'html.parser')
+    print(response)
     #old: ol#b_results > li.b_algo > h2 > a
     #new: ol#b_results > li.b_algo h2 > a
     #new titles only: ol#b_results > li.b_algo .b_title > h2 > a

@@ -41,8 +41,8 @@ class MapList(Cog):
     cog_command_error = cog_error_handler
 
     @slash_command(
-        name="uploadmvm", 
-        description=config.uploadmvm.help, 
+        name="uploadmvm",
+        description=config.uploadmvm.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.uploadmvm.role_names),
@@ -54,11 +54,11 @@ class MapList(Cog):
 
         # Make temp dir
         message = await ctx.respond(f"{loading} Making temp dir for zip")
-        
+
         tempdir = tempfile.mkdtemp()
         tempfilepath = os.path.join(tempdir, file.filename)
 
-        #save zip to /tmp/randomletters/zipname.zip
+        # save zip to /tmp/randomletters/zipname.zip
         await message.edit(content=f"{loading} Downloading `{file.filename}`...")
         await file.save(tempfilepath)
 
@@ -75,71 +75,88 @@ class MapList(Cog):
 
             if not filepath.endswith('.zip'):
 
-                #lets try something new NOW THE FILES CAN BE ANYWHERE
+                # lets try something new NOW THE FILES CAN BE ANYWHERE
                 for dirname, dirs, files in os.walk(filepath):
                     for filename in files:
-                        filename_without_extension, extension = os.path.splitext(filename)
+                        filename_without_extension, extension = os.path.splitext(
+                            filename)
                         if extension == '.bsp':
                             bsp_filepath = dirname + '/' + filename
-                            
+
                             # Compress with bzip2
                             await message.edit(content=f"{loading} Compressing `{filename}`...")
-                            compressed_file = compress_file(os.path.join(dirname, filename))
+                            compressed_file = compress_file(
+                                os.path.join(dirname, filename))
 
-                            upload_futures.extend([ 
-                                upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
-                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
-                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                            upload_futures.extend([
+                                upload_to_redirect(
+                                    compressed_file, global_config['vultr_s3_client']),
+                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                     global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                upload_to_gameserver(bsp_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                     global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
                             ])
-                        
-                        #population files
+
+                        # population files
                         if extension == '.pop':
                             pop_filepath = dirname + '/' + filename
-                            upload_futures.extend([ 
-                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.poppath),
-                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.poppath),
-                            ])     
-
-                        #stuff for huds
-                        if extension == '.res':
-                            pop_filepath = dirname + '/' + filename
-                            upload_futures.extend([ 
-                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
-                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                            upload_futures.extend([
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                     global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.poppath),
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                     global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.poppath),
                             ])
 
-                        #particle manifests
+                        # stuff for huds
+                        if extension == '.res':
+                            pop_filepath = dirname + '/' + filename
+                            upload_futures.extend([
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                     global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                     global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                            ])
+
+                        # particle manifests
                         if extension == '.txt':
                             if dirname.endswith('particles.txt'):
                                 pop_filepath = dirname + '/' + filename
-                                upload_futures.extend([ 
-                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
-                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
-                                ])                           
+                                upload_futures.extend([
+                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                         global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.mapspath),
+                                    upload_to_gameserver(pop_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                         global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.mapspath),
+                                ])
 
-                        #the navigation file
+                        # the navigation file
                         if extension == '.nav':
                             nav_filepath = dirname + '/' + filename
-                            upload_futures.extend([ 
-                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.navpath),
-                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.navpath),
-                            ])   
+                            upload_futures.extend([
+                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                     global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.navpath),
+                                upload_to_gameserver(nav_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                     global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.navpath),
+                            ])
 
-                        #we should check if it's in materials/hud/
+                        # we should check if it's in materials/hud/
                         if extension == '.vmt':
                             if dirname.endswith('/materials/hud/'):
                                 vmt_filepath = dirname + '/' + filename
-                                upload_futures.extend([ 
-                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
-                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
+                                upload_futures.extend([
+                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                         global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
+                                    upload_to_gameserver(vmt_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                         global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
                                 ])
 
                         if extension == '.vtf':
                             if dirname.endswith('/materials/hud/'):
                                 vtf_filepath = dirname + '/' + filename
-                                upload_futures.extend([ 
-                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username, global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
-                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username, global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
+                                upload_futures.extend([
+                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.us_tf2maps_net.hostname, global_config.sftp.mvm.us_tf2maps_net.username,
+                                                         global_config.sftp.mvm.us_tf2maps_net.password, global_config.sftp.mvm.us_tf2maps_net.port, global_config.sftp.mvm.us_tf2maps_net.materialspath),
+                                    upload_to_gameserver(vtf_filepath, global_config.sftp.mvm.eu_tf2maps_net.hostname, global_config.sftp.mvm.eu_tf2maps_net.username,
+                                                         global_config.sftp.mvm.eu_tf2maps_net.password, global_config.sftp.mvm.eu_tf2maps_net.port, global_config.sftp.mvm.eu_tf2maps_net.materialspath),
                                 ])
 
         # Upload to us, eu and redirect
@@ -148,8 +165,8 @@ class MapList(Cog):
         await message.edit(content=f"{success} All maps uploaded successfully!")
 
     @slash_command(
-        name="uploadzip", 
-        description=config.uploadzip.help, 
+        name="uploadzip",
+        description=config.uploadzip.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.uploadzip.role_names),
@@ -168,12 +185,12 @@ class MapList(Cog):
         # Download Zip from discord into temp dir
         await message.edit(content=f"{loading} Downloading `{file.filename}`...")
         await file.save(tempfilepath)
-        
+
         # Unzip maps
         await message.edit(content=f"{loading} Unzipping `{file.filename}`...")
         with zipfile.ZipFile(tempfilepath, "r") as zip:
             zip.extractall(tempdir)
-        
+
         upload_futures = []
 
         # Get all BSP files contained within
@@ -184,11 +201,12 @@ class MapList(Cog):
                 await message.edit(content=f"{loading} Compressing `{file}`...")
                 compressed_file = compress_file(os.path.join(tempdir, file))
 
-                upload_futures.extend([ 
-
-                    upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
-                    upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
-                    upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
+                upload_futures.extend([
+                    # upload_to_redirect(compressed_file, global_config['vultr_s3_client']),
+                    upload_to_gameserver(
+                        filepath, **global_config.sftp.us_tf2maps_net),
+                    upload_to_gameserver(
+                        filepath, **global_config.sftp.eu_tf2maps_net)
                 ])
 
         # Upload to us, eu and redirect
@@ -197,8 +215,8 @@ class MapList(Cog):
         await message.edit(content=f"{success} All maps uploaded successfully!")
 
     @slash_command(
-        name="uploadcheck", 
-        description=config.uploadcheck.help, 
+        name="uploadcheck",
+        description=config.uploadcheck.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.uploadcheck.role_names),
@@ -209,7 +227,8 @@ class MapList(Cog):
         await ctx.defer()
 
         try:
-            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            r = requests.get(
+                'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             master_redirect = await redirect_file_exists(f"{map_name}.bsp.bz2", global_config['vultr_s3_client']),
         except requests.exceptions.Timeout as e:
             master_redirect = False
@@ -217,17 +236,25 @@ class MapList(Cog):
             master_redirect = False
 
         us_size, eu_size, us_redir_size, eu_redir_size = await asyncio.gather(
-            remote_file_size(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_size(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
-            remote_file_size(f"{map_name}.bsp.bz2", **global_config.sftp.us_fastdl),
-            remote_file_size(f"{map_name}.bsp.bz2", **global_config.sftp.eu_fastdl)
+            remote_file_size(f"{map_name}.bsp", **
+                             global_config.sftp.us_tf2maps_net),
+            remote_file_size(f"{map_name}.bsp", **
+                             global_config.sftp.eu_tf2maps_net),
+            remote_file_size(f"{map_name}.bsp.bz2", **
+                             global_config.sftp.us_fastdl),
+            remote_file_size(f"{map_name}.bsp.bz2", **
+                             global_config.sftp.eu_fastdl)
         )
 
         us, eu, us_redirect, eu_redirect = await asyncio.gather(
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.us_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp", **global_config.sftp.eu_tf2maps_net),
-            remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.us_fastdl),
-            remote_file_exists(f"{map_name}.bsp.bz2", **global_config.sftp.eu_fastdl)
+            remote_file_exists(f"{map_name}.bsp", **
+                               global_config.sftp.us_tf2maps_net),
+            remote_file_exists(f"{map_name}.bsp", **
+                               global_config.sftp.eu_tf2maps_net),
+            remote_file_exists(f"{map_name}.bsp.bz2", **
+                               global_config.sftp.us_fastdl),
+            remote_file_exists(f"{map_name}.bsp.bz2", **
+                               global_config.sftp.eu_fastdl)
         )
 
         output = ""
@@ -263,31 +290,42 @@ class MapList(Cog):
 
         await ctx.respond(embed=embed, content="")
 
-
     @slash_command(
-        name="add", 
-        description=config.add.help, 
+        name="add",
+        description=config.add.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.add.role_names),
             not_nobot_role_slash()
         ]
     )
-    async def add(self, ctx, link, *, notes=""):
+    async def add(self, ctx,
+                  link,
+                  *,
+                  randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
+                  region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                  notes=""):
         await ctx.defer()
         message = await ctx.respond(f"{loading} Adding your map...")
-        await self.add_map(ctx, message, link, notes)
+        await self.add_map(ctx, message, link, randomcrits, region, notes)
 
     @slash_command(
-        name="update", 
-        description=config.update.help, 
+        name="update",
+        description=config.update.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.update.role_names),
             not_nobot_role_slash()
         ]
     )
-    async def update(self, ctx, map_name, link, *, notes=""):
+    async def update(self,
+                    ctx,
+                    map_name,
+                    link,
+                    *,
+                    randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
+                    region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                    notes=""):
         await ctx.defer()
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
 
@@ -297,17 +335,25 @@ class MapList(Cog):
             if link == "-":
                 if not notes:
                     await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
+
+                # standardize notes
+                if region == "us":
+                    notes = "US Only. " + notes
+                if region == "eu":
+                    notes = "EU Only. " + notes
+                if randomcrits == "yes":
+                    notes = "Random crits ON. " + notes
+
                 maps[0].notes = notes
                 await maps[0].save()
                 await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
                 message = await ctx.respond(f"{loading} Updating your map...")
-                await self.add_map(ctx, message, link, notes, old_map=maps[0])
-
+                await self.add_map(ctx, message, link, randomcrits, region, notes, old_map=maps[0])
 
     @slash_command(
-        name="delete", 
-        description=config.delete.help, 
+        name="delete",
+        description=config.delete.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.delete.role_names),
@@ -333,10 +379,9 @@ class MapList(Cog):
             await maps[0].delete()
             await ctx.respond(f"{success} Deleted `{maps[0].map}` from the list.")
 
-
     @slash_command(
-        name="maps", 
-        description=config.maps.help, 
+        name="maps",
+        description=config.maps.help,
         guild_ids=global_config.bot_guild_ids,
         checks=[
             roles_required(config.maps.role_names),
@@ -350,7 +395,7 @@ class MapList(Cog):
 
         # live_maps = await Maps.filter(Q(map=us_server.map) | Q(map=eu_server.map), played__gte=hour_ago).all()
         await ctx.defer()
-        live_maps = [] # TODO why is this sometimes returning many entires?
+        live_maps = []  # TODO why is this sometimes returning many entires?
         maps = await Maps.filter(status="pending").all()
 
         if len(maps) > 35:
@@ -364,19 +409,31 @@ class MapList(Cog):
             else:
                 map_names += f"• {item.map}\n"
 
-        embed = discord.Embed(description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
-        embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist", icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
+        embed = discord.Embed(
+            description=f"There are **{len(maps)}** maps waiting to be played.\nhttps://bot.tf2maps.net/maplist\n\u200b")
+        embed.set_author(name=f"Map Testing Queue", url="https://bot.tf2maps.net/maplist",
+                         icon_url="https://cdn.discordapp.com/emojis/829026378078224435.png?v=1")
 
         if live_maps:
             live_map_names = "\n".join([i.map for i in live_maps])
-            embed.add_field(name="Now Playing", value=live_map_names, inline=False)
+            embed.add_field(name="Now Playing",
+                            value=live_map_names, inline=False)
 
         embed.add_field(name="Map Queue", value=map_names, inline=False)
         embed.set_footer(text=global_config.bot_footer)
 
         await ctx.respond(embed=embed)
 
-    async def add_map(self, ctx, message, link, notes="", old_map=None):
+    async def add_map(self, ctx, message, link, randomcrits, region, notes="", old_map=None):
+
+        if region == "us":
+            notes = "US Only. " + notes
+        if region == "eu":
+            notes = "EU Only. " + notes
+        if randomcrits == "yes":
+            notes = "Random crits ON. " + notes
+            
+
         # If not link; use fuzzy search
         if not re.match("https?://", link):
             try:
@@ -416,31 +473,31 @@ class MapList(Cog):
             print(e)
             await message.edit(content=f"{warning} TypeError: Unable to be download! Is the site up? Is it an external download? Is there more than one download choice?")
             return
-        
+
         # Must be a BSP
         if not re.search("\.bsp$", filename):
             await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
             return
 
-        #Must not contain uppercase letters
+        # Must not contain uppercase letters
         if re.search("[A-Z]", map_name):
             await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting!")
             return
-        
-        #must not contain special characters
+
+        # must not contain special characters
         if re.search("[^A-Z_a-z0-9]", map_name):
-            await message.edit(content=f"{warning} `{map_name}.bsp` contains special characters! Aborting!")
+            await message.edit(content=f"{error} `{map_name}.bsp` contains special characters! Aborting!")
             return
-        
+
         # Check for dupe
         already_in_queue = await Maps.filter(map=map_name, status="pending").all()
         if len(already_in_queue) > 0 and not old_map:
             await message.edit(content=f"{warning} `{map_name}` is already on the list!")
             return
 
-        #stopped working, blocking for now
+        # stopped working, blocking for now
         if str(link).startswith('https://www.dropbox.com' or 'https://dropbox.com'):
-            #await dropbox_download(link, filepath)
+            # await dropbox_download(link, filepath)
             await message.edit(content=f"{error} No valid link found. Make sure it's uploaded to TF2maps.net.")
             return
 
@@ -448,7 +505,7 @@ class MapList(Cog):
         await message.edit(content=f"{loading} Found file name: `{filename}`. Downloading...")
 
         if str(link).startswith('https://www.dropbox.com' or 'https://dropbox.com'):
-            #await dropbox_download(link, filepath)
+            # await dropbox_download(link, filepath)
 
             filesize = os.stat(filepath)
             if filesize.st_size < 900000:
@@ -456,8 +513,8 @@ class MapList(Cog):
                 return
         else:
             await download_file(link, filepath)
-        
-        #Check map for HDR lighting issues
+
+        # Check map for HDR lighting issues
         print(bsp_validate_hdr(filepath))
         bsp_error = bsp_validate_hdr(filepath)
         if bsp_error[0] == False:
@@ -468,10 +525,11 @@ class MapList(Cog):
         await message.edit(content=f"{loading} Compressing `{filename}` for faster downloads...")
         compressed_file = compress_file(filepath)
 
-        #getting stuck here
-        #except ServerTimeoutError:
+        # getting stuck here
+        # except ServerTimeoutError:
         try:
-            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            r = requests.get(
+                'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             # Ensure map has the same MD5 sum as an existing one
             if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
                 if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
@@ -484,15 +542,16 @@ class MapList(Cog):
         except Exception as e:
             print(e)
             await message.edit(content=f"{warning} Cannot check md5 hash, S3 is down (something else happened too). Uploading anyways, this may cause map differs errors...")
-            
 
         # Upload to servers
-        
+
         try:
-            r = requests.get('https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
+            r = requests.get(
+                'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
             await asyncio.gather(
-                upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+                upload_to_redirect(
+                    compressed_file, global_config['vultr_s3_client'])
             )
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
@@ -502,10 +561,11 @@ class MapList(Cog):
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
 
         await asyncio.gather(
-            upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
+            upload_to_gameserver(
+                filepath, **global_config.sftp.us_tf2maps_net),
             upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
         )
-            
+
         # Insert map into DB
         await message.edit(content=f"{loading} Putting `{map_name}` into the map queue...")
 
@@ -528,7 +588,6 @@ class MapList(Cog):
             )
             await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
 
-
     @staticmethod
     async def parse_link(link):
         parsed_url = urlparse(link)
@@ -542,7 +601,7 @@ class MapList(Cog):
                 soup = BeautifulSoup(response.text, 'html.parser')
                 href = soup.select(".button--icon--download")[0].get("href")
 
-                #matched_link = f"https://tf2maps.net/{href}"
+                # matched_link = f"https://tf2maps.net/{href}"
                 matched_link = f"https://tf2maps.net{href}"
 
             # Example: https://tf2maps.net/downloads/pullsnake.11004/download?version=29169
@@ -550,25 +609,23 @@ class MapList(Cog):
                 matched_link = link
 
         async with httpx.AsyncClient() as client:
-            
+
             if str(link).startswith("https://tf2maps.net"):
                 response = await client.head(link, follow_redirects=True, timeout=30)
-            #dropbox
+            # dropbox
             else:
                 response = await client.get(link)
             redir = urlparse(str(response.url))
 
             # Example: https://www.dropbox.com/s/6tyvkwc0af81k9e/pl_cactuscanyon_b1_test.bsp?dl=0
             if redir.netloc == "dropbox.com" or redir.netloc == "www.dropbox.com":
-                
+
                 matched_link = str(response.url).replace("dl=0", "dl=1")
-            
-            #Stopped working
-            #if redir.netloc == 'cdn.discordapp.com':
+
+            # Stopped working
+            # if redir.netloc == 'cdn.discordapp.com':
             #    if str(link).startswith('https://cdn.discordapp.com/attachments/'):
             #        return link
-
-
 
         return matched_link
 

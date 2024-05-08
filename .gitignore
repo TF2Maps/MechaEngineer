@@ -7,3 +7,5 @@ config.yml
 *__pycache__*
 *.pex
 *.sqlite*
+moderation.py
+server.py
