@@ -6,3 +6,4 @@ from .servers import Servers
 from .misc import Misc
 from .verification import Verification
 from .hosts import Hosts
+from .moderation import SearchUsers

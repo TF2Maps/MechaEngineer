@@ -5,3 +5,4 @@ from .search import search_with_bing, search_downloads, get_srcds_server_info
 from .misc import get_random_password, wait_for_tcp, readable_time
 from .timehash import Timehash
 from .hdr_check import bsp_validate_hdr
+from .moderation import *
