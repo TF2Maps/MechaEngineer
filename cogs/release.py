@@ -2,6 +2,8 @@
 import sqlite3
 from urllib.parse import urlparse, quote
 from datetime import datetime, timedelta
+import tempfile
+import os
 
 # 3rd Party Imports
 from bs4 import BeautifulSoup
@@ -9,16 +11,44 @@ import discord
 from discord.ext.commands import Cog, slash_command
 import httpx
 import databases
+import tweepy
 
 # Local Imports
 from utils import load_config, cog_error_handler
 from utils.discord import not_nobot_role_slash, roles_required
 from utils.emojis import success, warning, error, info, loading
 from utils.moderation import *
+from utils.files import compress_file, download_file, get_download_filename, upload_to_gameserver, upload_to_redirect, remote_file_exists, redirect_file_exists, check_redirect_hash, dropbox_download, remote_file_size
 
 global_config = load_config()
 config = global_config.cogs.release
+twitter_cfg = global_config.twitter
 
+#
+# Twitter integrations
+#
+consumer_key = twitter_cfg.consumer_key
+consumer_secret = twitter_cfg.consumer_secret
+access_token = twitter_cfg.access_token
+access_token_secret = twitter_cfg.access_token_secret
+bearer_token = twitter_cfg.bearer_token
+
+apiv2 = tweepy.Client(
+    bearer_token=bearer_token,
+    consumer_key=consumer_key,
+    consumer_secret=consumer_secret,
+    access_token=access_token,
+    access_token_secret=access_token_secret
+)
+
+auth = tweepy.OAuth1UserHandler(
+   consumer_key, consumer_secret,
+   access_token, access_token_secret
+)
+api = tweepy.API(auth)
+
+
+#the actual plugin
 class Release(Cog):
     cog_command_error = cog_error_handler
 
@@ -97,6 +127,21 @@ class Release(Cog):
                         #if it's pending do this
                         if result:
 
+                            #get discord image url
+                            query = "SELECT discord_attachment_url FROM releases WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
+                            values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link}
+                            result = await database.fetch_one(query=query, values=values)                            
+                            imgURL = result[0]
+
+                            # we have to download the image... wtf
+                            filepath = os.path.join(tempfile.mkdtemp(), "img.png")
+                            await download_file(imgURL, filepath)
+
+                            #create shitter post
+                            tweetMessage = f"New map {map_name}, #released on the workshop! \nSteam: {steam_link} \nTF2Maps: {tf2maps_link}"
+                            tweet_status = await self.tweet(filepath, tweetMessage)
+                            twitter_url = f"https://twitter.com/tf2maps/{str(tweet_status.data['id'])}"
+
                             #post content to channels
                             #create thread
                             forum_tags = forum_channel.available_tags
@@ -108,21 +153,43 @@ class Release(Cog):
                                 if tag.name == "Workshop":
                                     workshopTag = tag                            
 
-                            thread = await forum_channel.create_thread(
-                                name=map_name,
-                                content="NEW MAP RELEASED!!!",
-                                embed=embedMsg,
-                                #these are a bitch to get
-                                applied_tags=[workshopTag, mapTag],
-                                reason="Approved map release"
-                            )
-                            created_thread = await thread.fetch_message(thread.id)
+                            #get discord ID
+                            query = "SELECT submitting_user_id FROM releases WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
+                            values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link}
+                            result = await database.fetch_one(query=query, values=values)
+
+                            #check if thread was submitted
+                            query = "SELECT map_forum_post_id FROM releases WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
+                            values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link}
+                            result = await database.fetch_one(query=query, values=values)
+                            
+                            #if no thread id submitted create thread
+                            if result[0] == None:
+                                thread = await forum_channel.create_thread(
+                                    name=map_name,
+                                    content=f"NEW MAP RELEASED!!! <@{result[0]}> \n {twitter_url}",
+                                    embed=embedMsg,
+                                    #these are a bitch to get
+                                    applied_tags=[workshopTag, mapTag],
+                                    slowmode_delay=0,
+                                    reason="Approved map release"
+                                )
+                                created_thread = await thread.fetch_message(thread.id)
+                            #if thread submitted
+                            else:
+                                created_thread = result[0]
 
                             #send in release channel
-                            map_release_message = await release_channel.send(f"A new map has been released! Discuss it here: <#{created_thread.id}>", embed=embedMsg)
+                            if result[0] == None:
+                                map_release_message = await release_channel.send(f"A new map has been released! Discuss it here: <#{created_thread.id}>", embed=embedMsg)
+                                thread_id = created_thread.id
+                            else:
+                                map_release_message = await release_channel.send(f"A new map has been released! Discuss it here: <#{result[0]}>", embed=embedMsg)
+                                thread_id = result[0]
+                            await map_release_message.publish()
 
-                            query = "UPDATE releases SET approved = 'approved', approved_time = :approved_time, map_release_message_id = :map_release_message_id, map_forum_post_id = :map_forum_post_id WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
-                            values = {"approved_time": datetime.now(), "steam_link": steam_link, "tf2maps_link": tf2maps_link, "map_release_message_id": map_release_message.id, "map_forum_post_id": thread.id}
+                            query = "UPDATE releases SET approved = 'approved', approved_time = :approved_time, map_release_message_id = :map_release_message_id, map_forum_post_id = :map_forum_post_id, twitter_post_url= :twitter_post_url WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
+                            values = {"approved_time": datetime.now(), "steam_link": steam_link, "tf2maps_link": tf2maps_link, "map_release_message_id": map_release_message.id, "map_forum_post_id": thread_id, "twitter_post_url": twitter_url}
                             result = await database.execute(query=query, values=values)
                             return
                         return
@@ -177,7 +244,46 @@ class Release(Cog):
             not_nobot_role_slash()
         ]
     )
-    async def release(self, ctx, steam_link, tf2maps_link, thumbnail: discord.Attachment):
+    async def release(
+        self, 
+        ctx, 
+        steam_link, 
+        tf2maps_link, 
+        thumbnail: discord.Attachment,
+        finished_work_thread: discord.Option(input_type=str, description='Supply the channel in # format using the discord modal. Example #mapthread.', required=False),
+    ):
+        
+        #if they enter a thread
+        if finished_work_thread is not None:
+            if finished_work_thread.startswith("<#"):
+                try:
+                    finished_work_thread_id = int(finished_work_thread[2:-1])
+
+                    #get channel
+                    supplied_channel = self.bot.get_channel(finished_work_thread_id)
+                    
+                    #check if channel even exists
+                    try:
+                        #REAL CHANNEL
+                        real_channel = supplied_channel.name
+                    except AttributeError:
+                        await ctx.respond(f"{error} That is not a valid thread. The bot recieved `{finished_work_thread}`.", ephemeral=True)
+                        return
+
+                except ValueError:
+                    await ctx.respond(f"{error} That is not a valid thread. The bot recieved `{finished_work_thread}`.", ephemeral=True)
+                    return
+                
+            else:
+                await ctx.respond(f"{error} That is not a valid thread.", ephemeral=True)
+                return
+
+        #check if it's a valid image first
+        image_type = thumbnail.content_type
+        if image_type != "image/png" and image_type != "image/jpeg":
+            await ctx.respond(f"{error} That is not a valid image. Supported image types are `.png` `.jpg`", ephemeral=True)
+            return
+
 
         #db notes
         #id - pk int (not needed for sqlite)
@@ -258,16 +364,42 @@ class Release(Cog):
         embed.set_footer(text=global_config.bot_footer)
 
         #send to admins
-        message = await admin_channel.send(f"Pending release!", embed=embed)
+        #if no thread id
+        if finished_work_thread is None:
+            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}", embed=embed)
+        #if thread id
+        else:
+            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}. \n**IMPORTANT:** Supplied thread <#{finished_work_thread_id}>. Make sure this is correct.", embed=embed)
+        
+        #add reactions
         await message.add_reaction("✅")
         await message.add_reaction("❎")
 
-        query = "INSERT INTO releases (steam_link, tf2maps_link, submitting_user_id, admin_message_id, approved, submission_time) VALUES (:steam_link, :tf2maps_link, :submitting_user_id, :admin_message_id, :approved, :submission_time)"
-        values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link, "submitting_user_id": ctx.author.id, "admin_message_id": message.id, "approved": "pending", "submission_time": datetime.now()}
-        result = await database.execute(query=query, values=values)
+        #if thread no ID
+        if finished_work_thread is None:
+            query = "INSERT INTO releases (steam_link, tf2maps_link, submitting_user_id, admin_message_id, approved, submission_time, discord_attachment_url) VALUES (:steam_link, :tf2maps_link, :submitting_user_id, :admin_message_id, :approved, :submission_time, :discord_attachment_url)"
+            values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link, "submitting_user_id": ctx.author.id, "admin_message_id": message.id, "approved": "pending", "submission_time": datetime.now(), "discord_attachment_url": thumbnail.url}
+            result = await database.execute(query=query, values=values)
+        #if thread id
+        else:
+            query = "INSERT INTO releases (steam_link, tf2maps_link, submitting_user_id, admin_message_id, approved, submission_time, discord_attachment_url, map_forum_post_id) VALUES (:steam_link, :tf2maps_link, :submitting_user_id, :admin_message_id, :approved, :submission_time, :discord_attachment_url, :map_forum_post_id)"
+            values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link, "submitting_user_id": ctx.author.id, "admin_message_id": message.id, "approved": "pending", "submission_time": datetime.now(), "discord_attachment_url": thumbnail.url, "map_forum_post_id": finished_work_thread_id}
+            result = await database.execute(query=query, values=values)
 
         #reply to use, sometimes it times out
         await ctx.respond(f"{success} The map has been submitted for release! Pending staff approval. Contact Us if it doesn't look right ASAP.", embed=embed, ephemeral=True)
+
+    #tweeting
+    @staticmethod
+    async def tweet(image, message): #, reply):
+    #posting to twitter
+        media = api.media_upload(image)
+        media_id = media.media_id
+        message = message + " #TF2"
+
+        item_tweet = apiv2.create_tweet(text=message, media_ids=[media_id])
+
+        return item_tweet
 
     #for clearing all pending maps during a bot restart
     @staticmethod
