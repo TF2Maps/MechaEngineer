@@ -302,12 +302,13 @@ class MapList(Cog):
     async def add(self, ctx,
                   link,
                   *,
+                contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
                   randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
                   region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
                   notes=""):
         await ctx.defer()
         message = await ctx.respond(f"{loading} Adding your map...")
-        await self.add_map(ctx, message, link, randomcrits, region, notes)
+        await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes)
 
     @slash_command(
         name="update",
@@ -323,6 +324,7 @@ class MapList(Cog):
                     map_name,
                     link,
                     *,
+                    contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
                     randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
                     region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
                     notes=""):
@@ -337,6 +339,8 @@ class MapList(Cog):
                     await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
 
                 # standardize notes
+                if contestmap == "yes":
+                    notes = "Contest Map. " + notes
                 if region == "us":
                     notes = "US Only. " + notes
                 if region == "eu":
@@ -349,7 +353,7 @@ class MapList(Cog):
                 await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
                 message = await ctx.respond(f"{loading} Updating your map...")
-                await self.add_map(ctx, message, link, randomcrits, region, notes, old_map=maps[0])
+                await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes, old_map=maps[0])
 
     @slash_command(
         name="delete",
@@ -424,8 +428,10 @@ class MapList(Cog):
 
         await ctx.respond(embed=embed)
 
-    async def add_map(self, ctx, message, link, randomcrits, region, notes="", old_map=None):
+    async def add_map(self, ctx, message, link, contestmap, randomcrits, region, notes="", old_map=None):
 
+        if contestmap == "yes":
+            notes = "Contest Map. " + notes
         if region == "us":
             notes = "US Only. " + notes
         if region == "eu":
