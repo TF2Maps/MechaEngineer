@@ -206,7 +206,9 @@ class MapList(Cog):
                     upload_to_gameserver(
                         filepath, **global_config.sftp.us_tf2maps_net),
                     upload_to_gameserver(
-                        filepath, **global_config.sftp.eu_tf2maps_net)
+                        filepath, **global_config.sftp.eu_tf2maps_net),
+                    upload_to_gameserver(compressed_file, **global_config.sftp.us_fastdl),
+                    upload_to_gameserver(compressed_file, **global_config.sftp.eu_fastdl)
                 ])
 
         # Upload to us, eu and redirect
@@ -309,6 +311,13 @@ class MapList(Cog):
         await ctx.defer()
         message = await ctx.respond(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes)
+
+        """
+        DPWM
+        Contest
+        Crits
+        Region
+        """
 
     @slash_command(
         name="update",
@@ -521,7 +530,6 @@ class MapList(Cog):
             await download_file(link, filepath)
 
         # Check map for HDR lighting issues
-        print(bsp_validate_hdr(filepath))
         bsp_error = bsp_validate_hdr(filepath)
         if bsp_error[0] == False:
             await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
@@ -556,8 +564,7 @@ class MapList(Cog):
                 'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
             await asyncio.gather(
-                upload_to_redirect(
-                    compressed_file, global_config['vultr_s3_client'])
+                upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
             )
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
@@ -567,9 +574,10 @@ class MapList(Cog):
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
 
         await asyncio.gather(
-            upload_to_gameserver(
-                filepath, **global_config.sftp.us_tf2maps_net),
-            upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net)
+            upload_to_gameserver(filepath, **global_config.sftp.us_tf2maps_net),
+            upload_to_gameserver(filepath, **global_config.sftp.eu_tf2maps_net),
+            upload_to_gameserver(compressed_file, **global_config.sftp.us_fastdl),
+            upload_to_gameserver(compressed_file, **global_config.sftp.eu_fastdl)
         )
 
         # Insert map into DB
