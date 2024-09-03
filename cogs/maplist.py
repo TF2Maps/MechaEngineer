@@ -305,12 +305,30 @@ class MapList(Cog):
                   link,
                   *,
                 contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
-                  randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
-                  region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
-                  notes=""):
+                randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
+                region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                playwithme: discord.Option(input_type=str, description='Do you want to be present for your map (ignored after a week).', choices=config.add.choices.playwithme, default='no', required=False),
+                notes=""):
         await ctx.defer()
         message = await ctx.respond(f"{loading} Adding your map...")
-        await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes)
+
+        # standardize notes
+        contest = False
+        crits = False
+        dpwm = False
+        
+        if playwithme == "yes":
+            dpwm = True
+        if contestmap == "yes":
+            contest = True
+        if region == "us":
+            pass
+        if region == "eu":
+            pass
+        if randomcrits == "yes":
+            crits = True
+    
+        await self.add_map(ctx, message, link, contest, crits, region, dpwm, notes)
 
     @slash_command(
         name="update",
@@ -329,6 +347,7 @@ class MapList(Cog):
                     contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
                     randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
                     region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                    playwithme: discord.Option(input_type=str, description='Do you want to be present for your map (ignored after a week).', choices=config.add.choices.playwithme, default='no', required=False),
                     notes=""):
         await ctx.defer()
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
@@ -337,20 +356,35 @@ class MapList(Cog):
             await ctx.respond(f"{error} You don't have a map with that name on the list!")
         else:
             if link == "-":
-                if not notes:
-                    await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                #if not notes:
+                #    await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
 
                 # standardize notes
+                if playwithme == "yes":
+                    dpwm = True
+                else:
+                    dpwm = False
+
                 if contestmap == "yes":
-                    notes = "Contest Map. " + notes
+                    contest = True
+                else:
+                    contest = False
+
                 if region == "us":
-                    notes = "US Only. " + notes
+                    pass
                 if region == "eu":
-                    notes = "EU Only. " + notes
+                    pass
+
                 if randomcrits == "yes":
-                    notes = "Random crits ON. " + notes
+                    crits = True
+                else:
+                    crits = False
 
                 maps[0].notes = notes
+                maps[0].contest = contest
+                maps[0].dpwm = dpwm
+                maps[0].crits = crits
+                maps[0].region = region
                 await maps[0].save()
                 await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
@@ -430,16 +464,19 @@ class MapList(Cog):
 
         await ctx.respond(embed=embed)
 
-    async def add_map(self, ctx, message, link, contestmap, randomcrits, region, notes="", old_map=None):
+    async def add_map(self, ctx, message, link, contest, crits, region, dpwm, notes="", old_map=None):
 
-        if contestmap == "yes":
-            notes = "Contest Map. " + notes
+        #optional fields for DB
+        if contest == True:
+            pass
         if region == "us":
-            notes = "US Only. " + notes
+            pass
         if region == "eu":
-            notes = "EU Only. " + notes
-        if randomcrits == "yes":
-            notes = "Random crits ON. " + notes
+            pass
+        if crits == True:
+            pass
+        if dpwm == True:
+            pass
             
 
         # If not link; use fuzzy search
@@ -583,6 +620,12 @@ class MapList(Cog):
             old_map.map = map_name
             if notes:
                 old_map.notes = notes
+
+            old_map.contest = contest
+            old_map.dpwm = dpwm
+            old_map.crits = crits
+            old_map.region = region
+
             await old_map.save()
             await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
         else:
@@ -593,6 +636,10 @@ class MapList(Cog):
                 url=link,
                 status="pending",
                 notes=notes,
+                contest=contest,
+                dpwm = dpwm,
+                crits = crits,
+                region = region,
                 added=datetime.now()
             )
             await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
