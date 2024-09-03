@@ -312,13 +312,6 @@ class MapList(Cog):
         message = await ctx.respond(f"{loading} Adding your map...")
         await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes)
 
-        """
-        DPWM
-        Contest
-        Crits
-        Region
-        """
-
     @slash_command(
         name="update",
         description=config.update.help,
@@ -470,11 +463,11 @@ class MapList(Cog):
         try:
             link = await self.parse_link(link)
         except IndexError:
-            await message.edit(content=f"{error} External Links not currently supported. Upload your map directly to the website.")
+            await message.edit(content=f"{error} External Links not currently supported. Upload your map directly to the website <https://tf2maps.net/downloads>.")
             return
 
         if not link:
-            await message.edit(content=f"{error} No valid link found.")
+            await message.edit(content=f"{error} No valid link found, make sure it's a TF2Maps.net link. Ex: <https://tf2maps.net/downloads/rumford.11023/>")
             return
 
         await message.edit(content=f"{loading} Found link: {link}")
@@ -486,22 +479,22 @@ class MapList(Cog):
             map_name = re.sub("\.bsp$", "", filename)
         except TypeError as e:
             print(e)
-            await message.edit(content=f"{warning} TypeError: Unable to be download! Is the site up? Is it an external download? Is there more than one download choice?")
+            await message.edit(content=f"{warning} TypeError: Unable to be downloaded! Is the site up? Is it an external download? Is there more than one download choice?")
             return
 
         # Must be a BSP
         if not re.search("\.bsp$", filename):
-            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
+            await message.edit(content=f"{warning} `{map_name}` is not a BSP! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # Must not contain uppercase letters
         if re.search("[A-Z]", map_name):
-            await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting!")
+            await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # must not contain special characters
         if re.search("[^A-Z_a-z0-9]", map_name):
-            await message.edit(content=f"{error} `{map_name}.bsp` contains special characters! Aborting!")
+            await message.edit(content=f"{error} `{map_name}.bsp` contains special characters! Aborting! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # Check for dupe
@@ -530,6 +523,7 @@ class MapList(Cog):
             await download_file(link, filepath)
 
         # Check map for HDR lighting issues
+        print(bsp_validate_hdr(filepath))
         bsp_error = bsp_validate_hdr(filepath)
         if bsp_error[0] == False:
             await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
@@ -547,7 +541,7 @@ class MapList(Cog):
             # Ensure map has the same MD5 sum as an existing one
             if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
                 if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
-                    await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                    await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map with a different version string. This is done by renaming the VMF in hammer. Ex: pl_rumford_rc1 -> pl_rumford_rc2")
                     return
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{warning} Cannot check md5 hash, S3 is down. Uploading anyways, this may cause map differs errors...")
@@ -564,7 +558,8 @@ class MapList(Cog):
                 'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
             await asyncio.gather(
-                upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+                upload_to_redirect(
+                    compressed_file, global_config['vultr_s3_client'])
             )
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
@@ -589,7 +584,7 @@ class MapList(Cog):
             if notes:
                 old_map.notes = notes
             await old_map.save()
-            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
         else:
             await Maps.create(
                 discord_user_handle=f"{ctx.author.display_name}",
@@ -600,7 +595,7 @@ class MapList(Cog):
                 notes=notes,
                 added=datetime.now()
             )
-            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
 
     @staticmethod
     async def parse_link(link):
