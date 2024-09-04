@@ -19,3 +19,7 @@ class Maps(Model):
     status = fields.CharField(max_length=50)
     added = fields.DatetimeField(default=datetime.now())
     played = fields.DatetimeField(null=True)
+    dpwm = fields.BooleanField(null=True)
+    contest = fields.BooleanField(null=True)
+    crits = fields.BooleanField(null=True)
+    region = fields.CharField(max_length=32)

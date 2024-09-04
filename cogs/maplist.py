@@ -305,19 +305,30 @@ class MapList(Cog):
                   link,
                   *,
                 contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
-                  randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
-                  region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
-                  notes=""):
+                randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
+                region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                playwithme: discord.Option(input_type=str, description='Do you want to be present for your map (ignored after a week).', choices=config.add.choices.playwithme, default='no', required=False),
+                notes=""):
         await ctx.defer()
         message = await ctx.respond(f"{loading} Adding your map...")
-        await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes)
 
-        """
-        DPWM
-        Contest
-        Crits
-        Region
-        """
+        # standardize notes
+        contest = False
+        crits = False
+        dpwm = False
+        
+        if playwithme == "yes":
+            dpwm = True
+        if contestmap == "yes":
+            contest = True
+        if region == "us":
+            pass
+        if region == "eu":
+            pass
+        if randomcrits == "yes":
+            crits = True
+    
+        await self.add_map(ctx, message, link, contest, crits, region, dpwm, notes)
 
     @slash_command(
         name="update",
@@ -336,6 +347,7 @@ class MapList(Cog):
                     contestmap: discord.Option(input_type=str, description='Is this a contest map? (only used during contests)', choices=config.add.choices.contest, default='no', required=False),
                     randomcrits: discord.Option(input_type=str, description='Select if you want random crits.', choices=config.add.choices.crits, default='no', required=False),
                     region: discord.Option(input_type=str, description='Select what region you want the map tested in.', choices=config.add.choices.region, default='both', required=False),
+                    playwithme: discord.Option(input_type=str, description='Do you want to be present for your map (ignored after a week).', choices=config.add.choices.playwithme, default='no', required=False),
                     notes=""):
         await ctx.defer()
         maps = await Maps.filter(map__icontains=map_name, status="pending", discord_user_id=ctx.author.id).all()
@@ -344,20 +356,35 @@ class MapList(Cog):
             await ctx.respond(f"{error} You don't have a map with that name on the list!")
         else:
             if link == "-":
-                if not notes:
-                    await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
+                #if not notes:
+                #    await ctx.respond(f"{error} Add a link or notes, otherwise theres nothing to update.")
 
                 # standardize notes
+                if playwithme == "yes":
+                    dpwm = True
+                else:
+                    dpwm = False
+
                 if contestmap == "yes":
-                    notes = "Contest Map. " + notes
+                    contest = True
+                else:
+                    contest = False
+
                 if region == "us":
-                    notes = "US Only. " + notes
+                    pass
                 if region == "eu":
-                    notes = "EU Only. " + notes
+                    pass
+
                 if randomcrits == "yes":
-                    notes = "Random crits ON. " + notes
+                    crits = True
+                else:
+                    crits = False
 
                 maps[0].notes = notes
+                maps[0].contest = contest
+                maps[0].dpwm = dpwm
+                maps[0].crits = crits
+                maps[0].region = region
                 await maps[0].save()
                 await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
@@ -437,16 +464,19 @@ class MapList(Cog):
 
         await ctx.respond(embed=embed)
 
-    async def add_map(self, ctx, message, link, contestmap, randomcrits, region, notes="", old_map=None):
+    async def add_map(self, ctx, message, link, contest, crits, region, dpwm, notes="", old_map=None):
 
-        if contestmap == "yes":
-            notes = "Contest Map. " + notes
+        #optional fields for DB
+        if contest == True:
+            pass
         if region == "us":
-            notes = "US Only. " + notes
+            pass
         if region == "eu":
-            notes = "EU Only. " + notes
-        if randomcrits == "yes":
-            notes = "Random crits ON. " + notes
+            pass
+        if crits == True:
+            pass
+        if dpwm == True:
+            pass
             
 
         # If not link; use fuzzy search
@@ -470,11 +500,11 @@ class MapList(Cog):
         try:
             link = await self.parse_link(link)
         except IndexError:
-            await message.edit(content=f"{error} External Links not currently supported. Upload your map directly to the website.")
+            await message.edit(content=f"{error} External Links not currently supported. Upload your map directly to the website <https://tf2maps.net/downloads>.")
             return
 
         if not link:
-            await message.edit(content=f"{error} No valid link found.")
+            await message.edit(content=f"{error} No valid link found, make sure it's a TF2Maps.net link. Ex: <https://tf2maps.net/downloads/rumford.11023/>")
             return
 
         await message.edit(content=f"{loading} Found link: {link}")
@@ -486,22 +516,22 @@ class MapList(Cog):
             map_name = re.sub("\.bsp$", "", filename)
         except TypeError as e:
             print(e)
-            await message.edit(content=f"{warning} TypeError: Unable to be download! Is the site up? Is it an external download? Is there more than one download choice?")
+            await message.edit(content=f"{warning} TypeError: Unable to be downloaded! Is the site up? Is it an external download? Is there more than one download choice?")
             return
 
         # Must be a BSP
         if not re.search("\.bsp$", filename):
-            await message.edit(content=f"{warning} `{map_name}` is not a BSP!")
+            await message.edit(content=f"{warning} `{map_name}` is not a BSP! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # Must not contain uppercase letters
         if re.search("[A-Z]", map_name):
-            await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting!")
+            await message.edit(content=f"{error} `{map_name}.bsp` contains uppercase letters! Aborting! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # must not contain special characters
         if re.search("[^A-Z_a-z0-9]", map_name):
-            await message.edit(content=f"{error} `{map_name}.bsp` contains special characters! Aborting!")
+            await message.edit(content=f"{error} `{map_name}.bsp` contains special characters! Aborting! Map submission rules: <https://tf2maps.net/pages/map-testing/>")
             return
 
         # Check for dupe
@@ -530,6 +560,7 @@ class MapList(Cog):
             await download_file(link, filepath)
 
         # Check map for HDR lighting issues
+        print(bsp_validate_hdr(filepath))
         bsp_error = bsp_validate_hdr(filepath)
         if bsp_error[0] == False:
             await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
@@ -547,7 +578,7 @@ class MapList(Cog):
             # Ensure map has the same MD5 sum as an existing one
             if await redirect_file_exists(compressed_file, global_config['vultr_s3_client']):
                 if not await check_redirect_hash(compressed_file, global_config['vultr_s3_client']):
-                    await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map.")
+                    await message.edit(content=f"{warning} Your map `{map_name}` differs from the map on the server. Please upload a new version of the map with a different version string. This is done by renaming the VMF in hammer. Ex: pl_rumford_rc1 -> pl_rumford_rc2")
                     return
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{warning} Cannot check md5 hash, S3 is down. Uploading anyways, this may cause map differs errors...")
@@ -564,7 +595,8 @@ class MapList(Cog):
                 'https://sjc1.vultrobjects.com/tf2maps-maps/maps/1cp_seafoam_a1.bsp.bz2', timeout=4)
             await message.edit(content=f"{loading} Uploading `{filename}` to servers...")
             await asyncio.gather(
-                upload_to_redirect(compressed_file, global_config['vultr_s3_client'])
+                upload_to_redirect(
+                    compressed_file, global_config['vultr_s3_client'])
             )
         except requests.exceptions.Timeout as e:
             await message.edit(content=f"{loading} Uploading `{filename}` to servers... except S3.")
@@ -588,8 +620,14 @@ class MapList(Cog):
             old_map.map = map_name
             if notes:
                 old_map.notes = notes
+
+            old_map.contest = contest
+            old_map.dpwm = dpwm
+            old_map.crits = crits
+            old_map.region = region
+
             await old_map.save()
-            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Updated `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
         else:
             await Maps.create(
                 discord_user_handle=f"{ctx.author.display_name}",
@@ -598,9 +636,13 @@ class MapList(Cog):
                 url=link,
                 status="pending",
                 notes=notes,
+                contest=contest,
+                dpwm = dpwm,
+                crits = crits,
+                region = region,
                 added=datetime.now()
             )
-            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing!")
+            await message.edit(content=f"{success} Uploaded `{map_name}` successfully! Ready for testing! Please ensure your map follows the map submission rules: <https://tf2maps.net/pages/map-testing/>")
 
     @staticmethod
     async def parse_link(link):
