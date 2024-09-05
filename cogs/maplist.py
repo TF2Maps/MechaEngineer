@@ -388,8 +388,29 @@ class MapList(Cog):
                 await maps[0].save()
                 await ctx.respond(f"{success} Updated the notes for `{maps[0].map}`!")
             else:
+
+                if playwithme == "yes":
+                    dpwm = True
+                else:
+                    dpwm = False
+
+                if contestmap == "yes":
+                    contest = True
+                else:
+                    contest = False
+
+                if region == "us":
+                    pass
+                if region == "eu":
+                    pass
+
+                if randomcrits == "yes":
+                    crits = True
+                else:
+                    crits = False
+
                 message = await ctx.respond(f"{loading} Updating your map...")
-                await self.add_map(ctx, message, link, contestmap, randomcrits, region, notes, old_map=maps[0])
+                await self.add_map(ctx, message, link, contest, crits, region, dpwm, notes, old_map=maps[0])
 
     @slash_command(
         name="delete",
@@ -560,7 +581,6 @@ class MapList(Cog):
             await download_file(link, filepath)
 
         # Check map for HDR lighting issues
-        print(bsp_validate_hdr(filepath))
         bsp_error = bsp_validate_hdr(filepath)
         if bsp_error[0] == False:
             await message.edit(content=f"{error} `{filename}` {bsp_error[1]}")
