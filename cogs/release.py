@@ -12,6 +12,7 @@ from discord.ext.commands import Cog, slash_command
 import httpx
 import databases
 import tweepy
+from atproto import Client, client_utils
 
 # Local Imports
 from utils import load_config, cog_error_handler
@@ -140,7 +141,7 @@ class Release(Cog):
                             #create shitter post
                             tweetMessage = f"New map {map_name}, #released on the workshop! \nSteam: {steam_link} \nTF2Maps: {tf2maps_link}"
                             tweet_status = await self.tweet(filepath, tweetMessage)
-                            twitter_url = f"https://twitter.com/tf2maps/{str(tweet_status.data['id'])}"
+                            twitter_url = f"https://twitter.com/tf2maps/status/{str(tweet_status.data['id'])}"
 
                             #post content to channels
                             #create thread
@@ -156,7 +157,7 @@ class Release(Cog):
                             #get discord ID
                             query = "SELECT submitting_user_id FROM releases WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
                             values = {"steam_link": steam_link, "tf2maps_link": tf2maps_link}
-                            result = await database.fetch_one(query=query, values=values)
+                            result1 = await database.fetch_one(query=query, values=values)
 
                             #check if thread was submitted
                             query = "SELECT map_forum_post_id FROM releases WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
@@ -167,7 +168,7 @@ class Release(Cog):
                             if result[0] == None:
                                 thread = await forum_channel.create_thread(
                                     name=map_name,
-                                    content=f"NEW MAP RELEASED!!! <@{result[0]}> \n {twitter_url}",
+                                    content=f"NEW MAP RELEASED!!! <@{result1[0]}> \n {twitter_url}",
                                     embed=embedMsg,
                                     #these are a bitch to get
                                     applied_tags=[workshopTag, mapTag],
@@ -191,6 +192,17 @@ class Release(Cog):
                             query = "UPDATE releases SET approved = 'approved', approved_time = :approved_time, map_release_message_id = :map_release_message_id, map_forum_post_id = :map_forum_post_id, twitter_post_url= :twitter_post_url WHERE steam_link = :steam_link AND tf2maps_link = :tf2maps_link AND approved = 'pending'"
                             values = {"approved_time": datetime.now(), "steam_link": steam_link, "tf2maps_link": tf2maps_link, "map_release_message_id": map_release_message.id, "map_forum_post_id": thread_id, "twitter_post_url": twitter_url}
                             result = await database.execute(query=query, values=values)
+
+                            #create bluesky post
+                            client = Client(base_url='https://bsky.social')
+                            client.login(global_config.bluesky.username, global_config.bluesky.password)
+                            
+                            with open(filepath, 'rb') as f:
+                                img_data = f.read()
+
+                            client.send_image(text=client_utils.TextBuilder().text(f"New map {map_name}, #released on the workshop! \n Steam:").link(f'{steam_link}', steam_link).text("\n TF2Maps: ").link(f'{tf2maps_link}', tf2maps_link), image=img_data, image_alt='Image of a community made map from Team Fortress 2.')
+                            f.close()
+
                             return
                         return
 
@@ -283,6 +295,12 @@ class Release(Cog):
         if image_type != "image/png" and image_type != "image/jpeg":
             await ctx.respond(f"{error} That is not a valid image. Supported image types are `.png` `.jpg`", ephemeral=True)
             return
+        
+        img_size = thumbnail.size
+        print(img_size)
+        if img_size > 1000000:
+            await ctx.respond(f"{error} The image cannot be larger than 1MB!", ephemeral=True)
+            return
 
 
         #db notes
@@ -366,10 +384,10 @@ class Release(Cog):
         #send to admins
         #if no thread id
         if finished_work_thread is None:
-            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}", embed=embed)
+            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}. **CHECK THE UPLOAD DATE. NO OLD MAPS.**", embed=embed)
         #if thread id
         else:
-            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}. \n**IMPORTANT:** Supplied thread <#{finished_work_thread_id}>. Make sure this is correct.", embed=embed)
+            message = await admin_channel.send(f"Pending release! Submitted by {ctx.author.name}. \n**IMPORTANT:** Supplied thread <#{finished_work_thread_id}>. Make sure this is correct. **CHECK THE UPLOAD DATE. NO OLD MAPS.**", embed=embed)
         
         #add reactions
         await message.add_reaction("✅")
