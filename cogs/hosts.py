@@ -4,11 +4,14 @@ import urllib.request
 import json
 import time
 import datetime
+import ast
 
 # 3rd Party Imports
 import discord
 from discord.ext.commands import Cog, slash_command
 import databases
+from rcon.source import rcon
+from steam.steamid import SteamID
 
 # Local Imports
 from utils import load_config, cog_error_handler
@@ -17,6 +20,7 @@ from utils.emojis import success, warning, error, info, loading
 
 global_config = load_config()
 config = global_config.cogs.hosts
+sftp_config = global_config.sftp
 
 class Hosts(Cog):
     cog_command_error = cog_error_handler
@@ -137,13 +141,18 @@ class Hosts(Cog):
         if vip_role not in ctx.author.roles:
             await ctx.respond(f"{warning} You're not a vip, only vip's may get temp-hosting powers for gamedays.")
             return
+        
+        #check if host already
+        hosts_role = discord.utils.get(ctx.guild.roles, name="Hosts")
+
+        if hosts_role in ctx.author.roles:
+            await ctx.respond(f"{warning} You're a host already. Go away.")
+            return
 
 
         #
         # check if user has forum account
         #
-        await ctx.respond(f"{loading} Adding you to the temp-hosts forum group...")
-        time.sleep(2)
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
         
@@ -154,51 +163,72 @@ class Hosts(Cog):
 
         #has connected discord account check
         if not result:
-            await ctx.edit(content=f"{error} You don't have a Discord User ID # set in your TF2Maps.net profile.\nSee [this help page](<http://bot.tf2maps.net/faq.php>) on how to get started.")
+            await ctx.edit(content=f"{error} You don't have a Discord User ID # set in your TF2Maps.net profile.\nSee [this help page](<http://bot.tf2maps.net/faq>) on how to get started.")
             return
         
         user_forum_id = result[0]
 
-        #
-        # check if there's an event on the calendar for today
-        # 
-        print("has account linked")
-        now = datetime.datetime.now()
-        calendar_today = "{:02d}".format(now.year) + "{:02d}".format(now.month) + "{:02d}".format(now.day)
-        query = "SELECT thread_id FROM xf_andy_calendar WHERE calendar_date = :field_value"
-        values = {"field_value": calendar_today}
-        results = await database.fetch_all(query=query, values=values)
+        #check if server has a lot of people on it
+            #how to know what server they are on
+                #rcon
+            #is that worth the effort?
 
-        for result in results:
-            #check if the users forum account is linked to that thread in the calendar thread
-            try:
-                #select user_id from xf_thread where thread_id='49093'
-                query = "select user_id from xf_thread where thread_id = :field_value"
-                values = {"field_value": result[0]}
-                thread_creator_id = await database.fetch_one(query=query, values=values)
+        query = "SELECT provider_key FROM xf_user_connected_account WHERE provider = 'th_cap_steam' AND user_id = :user_id"
+        values = {"user_id": user_forum_id}
+        result = await database.fetch_one(query=query, values=values)
+        if result is None:
+            await ctx.respond(f"{error} You do not have a steam account linked.")
+            return
+        user_steam_id = result[0].decode("utf-8")
 
-            except:
-                print("Can't find the user who created the thread. This is a rare error only see in testing.")
-                await ctx.edit(content=f"{error} Can't find user who created the thread on the calendar. You'll need to be added manually. This is a rare error only see in testing.")
-                return
-            
-            #check if the thread found matches the user_id linked
-            if thread_creator_id[0] != user_forum_id:
-                print("User ID on thread does not match the discord ID linked on the forums.")
-                await ctx.edit(content=f"{error} You don't seem to have an event thread on the calendar or you aren't the one who created the thread!")
-                return
+        user_steam3 = SteamID(user_steam_id).as_steam3
 
-            #add to role
-            user_secondary_groups = await self.get_user_roles(thread_creator_id[0])
+        on_server = False
 
-            if 43 in user_secondary_groups:
-                await ctx.edit(content=f"{warning} {ctx.author.name} already has the temp-hosts group on the forum!")
-                time.sleep(3)
-            else:
-                message = await ctx.edit(content=f"{loading} Adding {ctx.author.name} to temp-hosts group on the forums...")
-                time.sleep(2)
-                await self.add_user_temp_host(ctx, message, user_forum_id, user_secondary_groups, ctx.author)
-            break
+        response_us = await rcon('api_steamids', host="us.tf2maps.net", port=27015, passwd=sftp_config.us_tf2maps_net.rcon)
+        players_us = ast.literal_eval(response_us)
+
+        #loop through api for player steamid
+        for player in players_us:
+            steam_id = player['steam_id']
+            if steam_id == user_steam3:
+                if len(players_us) > 16:
+                    await ctx.respond(f"{warning} There is more than 16 players on the US server. We are assuming there is a map test on-going.")
+                    return
+                on_server = True
+                break
+
+        response_eu = await rcon('api_steamids', host="eu.tf2maps.net", port=27015, passwd=sftp_config.eu_tf2maps_net.rcon)
+        players_eu = ast.literal_eval(response_eu)
+
+        #loop through api for player steamid
+        for player in players_eu:
+            steam_id = player['steam_id']
+            if steam_id == user_steam3:
+                if len(players_us) > 16:
+                    await ctx.respond(f"{warning} There is more than 16 players on the EU server. We are assuming there is a map test on-going.")
+                    return
+                on_server = True
+                break
+
+        if on_server is False:
+            await ctx.respond(f"{error} You are not present on the server or you haven't linked your accounts to the forums.")
+            return
+
+        #grant temp host
+        await ctx.respond(f"{loading} Adding you to the temp-hosts forum group...")
+        time.sleep(2)
+
+        #add to role
+        user_secondary_groups = await self.get_user_roles(user_forum_id)
+
+        if 43 in user_secondary_groups:
+            await ctx.edit(content=f"{warning} {ctx.author.name} already has the temp-hosts group on the forum!")
+            time.sleep(3)
+        else:
+            message = await ctx.edit(content=f"{loading} Adding {ctx.author.name} to temp-hosts group on the forums...")
+            time.sleep(2)
+            await self.add_user_temp_host(ctx, message, user_forum_id, user_secondary_groups, ctx.author)
 
         pass
 
