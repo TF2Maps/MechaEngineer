@@ -1,10 +1,5 @@
 # Std Lib Imports
 import requests
-import urllib.request
-import json
-import time
-import datetime
-import ast
 
 # 3rd Party Imports
 import discord
@@ -36,7 +31,6 @@ class Hosts(Cog):
     async def addhost(self, ctx, user: discord.Option(discord.Member, description="discord user")):
        
         await ctx.respond(f"{loading} Adding {user.name} to hosts group...")
-        time.sleep(2)
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
         
@@ -55,15 +49,12 @@ class Hosts(Cog):
 
         if 41 in user_secondary_groups:
             await ctx.edit(content=f"{warning} {user.name} already has the hosts group on the forum! Checking discord...")
-            time.sleep(3)
         else:
             message = await ctx.edit(content=f"{loading} Adding {user.name} to hosts group on the forums...")
-            time.sleep(2)
             await self.add_user_hosts(ctx, message, user_id, user_secondary_groups, user)
         
 
         message = await ctx.edit(content=f"{loading} Adding {user.name} to hosts group on discord...")
-        time.sleep(2)
         ##discord role stuff
         host_role = discord.utils.get(ctx.guild.roles, name="Hosts")
         if host_role in ctx.user.roles:
@@ -83,7 +74,6 @@ class Hosts(Cog):
     )
     async def delhost(self, ctx, user: discord.Option(discord.Member, description="discord user")):
         await ctx.respond(f"{loading} Removing {user.name} from hosts group...")
-        time.sleep(2)
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
         
@@ -102,17 +92,14 @@ class Hosts(Cog):
 
         if 41 not in user_secondary_groups:
             await ctx.edit(content=f"{warning} {user.name} is already removed from the xenforo group! Checking discord...")
-            time.sleep(3)
         else:
             
             message = await ctx.edit(content=f"{loading} Removing {user.name} from hosts group on the forums...")
-            time.sleep(2)
             #await self.add_user_hosts(ctx, message, user_id, user_secondary_groups, user)
             await self.del_user_hosts(ctx, message, user_id, user_secondary_groups, user)
 
         
         message = await ctx.edit(content=f"{loading} Removing {user.name} from hosts group on discord...")
-        time.sleep(2)
         ###discord role stuff
         host_role = discord.utils.get(ctx.guild.roles, name="Hosts")
         if host_role not in ctx.user.roles:
@@ -148,7 +135,6 @@ class Hosts(Cog):
 
         #do site things
         await ctx.respond(f"{loading} Adding {user.name} to hosts group...")
-        time.sleep(2)
         database = databases.Database(global_config.databases.tf2maps_site)
         await database.connect()
         
@@ -167,15 +153,12 @@ class Hosts(Cog):
 
         if 43 in user_secondary_groups:
             await ctx.edit(content=f"{warning} {user.name} already has the temp-host group on the forum! Checking discord...")
-            time.sleep(3)
         else:
             message = await ctx.edit(content=f"{loading} Adding {user.name} to temp-host group on the forums...")
-            time.sleep(2)
             await self.add_user_hosts(ctx, message, user_id, user_secondary_groups, user)
         
 
         message = await ctx.edit(content=f"{loading} Adding {user.name} to hosts group on discord...")
-        time.sleep(2)
         ##discord role stuff
         temphost_role = discord.utils.get(ctx.guild.roles, name="Temp-Host")
         if temphost_role in ctx.user.roles:
@@ -256,7 +239,6 @@ class Hosts(Cog):
 
         if r.status_code == 200:
             await ctx.edit(content=f"{success} Added {user.name} to the hosts group on the forums.")
-            time.sleep(2)
             return
         
         await ctx.edit(content=f"{error} Unable to add {user.name} to the hosts group on the forums.")
@@ -283,7 +265,6 @@ class Hosts(Cog):
 
         if r.status_code == 200:
             await ctx.edit(content=f"{success} Removed {user.name} from the hosts group on the forums.")
-            time.sleep(2)
             return
         
         await ctx.edit(content=f"{error} Unable to remove {user.name} from the hosts group on the forums.")
@@ -309,11 +290,7 @@ class Hosts(Cog):
 
         if r.status_code == 200:
             await ctx.edit(content=f"{success} Added {user.name} to the temp-hosts group on the forums.")
-            time.sleep(2)
             return
         
         await ctx.edit(content=f"{error} Unable to add {user.name} to the temp-hosts group on the forums.")
         return
-
-    async def del_user_hosts(self, ctx, message, user_id, user_secondary_groups, user):
-        pass
